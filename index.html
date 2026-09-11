@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KTMEX - Sistema de Etiquetas JAMA</title>
+    <!-- Librerías requeridas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -35,6 +36,7 @@
         .btn-pdf { background: #e74c3c; color: white; }
         button:disabled { opacity: 0.5; cursor: not-allowed; }
 
+        /* DISEÑO EXACTO DE LA ETIQUETA */
         .kanban-render { 
             width: 800px; 
             background: white; 
@@ -58,6 +60,7 @@
         .side-field { flex: 1; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid black; font-weight: bold; position: relative; }
         .side-field:last-child { border-bottom: none; }
         
+        /* TEXTOS VERTICALES IZQUIERDOS */
         .side-field::before { 
             content: attr(data-label); 
             position: absolute; 
@@ -331,6 +334,7 @@
     sebangoInput.addEventListener('change', (e) => fetchDatabaseBySebango(e.target.value));
     sebangoInput.addEventListener('blur', (e) => fetchDatabaseBySebango(e.target.value));
 
+    // Eventos para refrescar vista previa al escribir manualmente en Modo Admin
     const editableInputs = ['tekin', 'prevProc', 'nextProc', 'pack', 'qpc', 'clientId', 'pno', 'client'];
     editableInputs.forEach(id => {
         const el = document.getElementById(id);
@@ -386,6 +390,7 @@
         });
     }
 
+    // GENERADOR ULTRA RÁPIDO MANTENIENDO EL DISEÑO Y DIMENSIONES
     async function generateExactPDF() {
         const btnPdf = document.getElementById('btn-pdf');
         const progressEl = document.getElementById('pdf-progress');
@@ -401,9 +406,11 @@
         progressEl.innerText = "⚡ Generando plantilla base en alta resolución...";
 
         const { jsPDF } = window.jspdf;
+        // Formato Carta: 215.9 mm (ancho) x 279.4 mm (alto)
         const pdf = new jsPDF('p', 'mm', 'letter');
         const kanbanBox = document.getElementById('kanban-box');
 
+        // Renderizar vista previa base con secuencia plantilla
         renderPreview(start);
 
         const imgObj = document.getElementById('preview-img-obj');
@@ -411,16 +418,18 @@
             await new Promise(res => imgObj.onload = res);
         }
 
+        // Obtener la posición de la zona del QR/secuencia dentro de la etiqueta
         const qrAreaEl = kanbanBox.querySelector('.qr-area');
         const boxRect = kanbanBox.getBoundingClientRect();
         const qrRect = qrAreaEl.getBoundingClientRect();
 
-        const scale = 2;
+        const scale = 2; // Alta calidad (escala 2)
         const relX = (qrRect.left - boxRect.left) * scale;
         const relY = (qrRect.top - boxRect.top) * scale;
         const relW = qrRect.width * scale;
         const relH = qrRect.height * scale;
 
+        // Captura base inicial rápida mediante html2canvas
         const baseCanvas = await html2canvas(kanbanBox, { 
             scale: scale, 
             useCORS: true, 
@@ -428,7 +437,7 @@
             animated: false 
         });
 
-        const labelWidth = 205.9;
+        const labelWidth = 205.9; // Ancho ajustado a hoja carta
         const labelHeight = 88;
         const xPos = 5;
         const yOffset = 5;
@@ -437,11 +446,13 @@
         let countInPage = 0;
         const total = (end - start) + 1;
 
+        // Crear canvas temporal para la generación ultrarrápida
         const frameCanvas = document.createElement('canvas');
         frameCanvas.width = baseCanvas.width;
         frameCanvas.height = baseCanvas.height;
         const ctx = frameCanvas.getContext('2d');
 
+        // Div temporal fuera de pantalla pero renderizable para el QR
         const tempQrDiv = document.createElement('div');
         tempQrDiv.style.position = 'absolute';
         tempQrDiv.style.left = '-9999px';
@@ -450,11 +461,14 @@
         for (let i = start; i <= end; i++) {
             const currentIdx = (i - start) + 1;
 
+            // 1. Copiar plantilla base completa
             ctx.drawImage(baseCanvas, 0, 0);
 
+            // 2. Blanquear área de la secuencia y QR
             ctx.fillStyle = '#FFFFFF';
             ctx.fillRect(relX, relY, relW, relH);
 
+            // 3. Dibujar Caja de Secuencia
             const seqBoxW = 85 * scale;
             const seqBoxH = 32 * scale;
             const seqBoxX = relX + (relW - seqBoxW) / 2;
@@ -472,6 +486,7 @@
             ctx.textBaseline = 'middle';
             ctx.fillText(i.toString(), seqBoxX + (seqBoxW / 2), seqBoxY + (seqBoxH / 2));
 
+            // 4. Generar código QR
             tempQrDiv.innerHTML = "";
             new QRCode(tempQrDiv, {
                 text: `${i}-${document.getElementById('pno').value}-${document.getElementById('sebango').value}`,
@@ -480,6 +495,7 @@
                 correctLevel: QRCode.CorrectLevel.M
             });
 
+            // Esperar ciclo de render de JS para que se pinte el canvas/imagen QR
             await new Promise(resolve => setTimeout(resolve, 5));
 
             const qrCanvas = tempQrDiv.querySelector('canvas');
@@ -500,6 +516,7 @@
                 ctx.drawImage(qrImg, qrX, qrY, 90 * scale, 90 * scale);
             }
 
+            // 5. Agregar a la hoja PDF
             if (countInPage === 3) {
                 pdf.addPage();
                 countInPage = 0;
@@ -511,6 +528,7 @@
             pdf.addImage(imgData, 'JPEG', xPos, yPos, labelWidth, labelHeight);
             countInPage++;
 
+            // Actualizar progreso
             if (currentIdx % 10 === 0 || currentIdx === total) {
                 progressEl.innerText = `⚡ Generando etiqueta ${currentIdx} de ${total}...`;
                 await new Promise(r => setTimeout(r, 0));
