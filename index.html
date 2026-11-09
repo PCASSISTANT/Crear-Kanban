@@ -46,6 +46,7 @@
             border: 2px solid black; 
             margin-top: 20px; 
             box-sizing: border-box;
+            text-transform: uppercase;
         }
         .header-row { display: flex; background: var(--area-color); border-bottom: 2px solid black; align-items: stretch; }
         .header-cell { flex: 1; border-right: 1px solid black; padding: 4px; text-align: center; display: flex; flex-direction: column; justify-content: center; }
@@ -57,23 +58,52 @@
 
         .body-row { display: flex; height: 210px; }
         .left-panel { width: 38%; display: flex; flex-direction: column; background: var(--side-color); border-right: 2px solid black; }
-        .side-field { flex: 1; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid black; font-weight: bold; position: relative; }
+        
+        /* ESTRUCTURA SEPARADA PARA ALINEACIÓN PERFECTA */
+        .side-field { 
+            flex: 1; 
+            display: flex; 
+            align-items: stretch; 
+            border-bottom: 1px solid black; 
+            box-sizing: border-box;
+        }
         .side-field:last-child { border-bottom: none; }
         
-        /* TEXTOS VERTICALES IZQUIERDOS */
-        .side-field::before { 
-            content: attr(data-label); 
-            position: absolute; 
-            left: 4px; 
-            top: 50%;
-            transform: translateY(-50%) rotate(-90deg); 
-            font-size: 8px; 
-            font-weight: bold;
-            letter-spacing: 0.5px;
+        .vert-title {
+            width: 28px; /* Barrera fija de protección */
+            position: relative;
         }
         
-        .val-large { font-size: 38px; }
-        .val-mid { font-size: 26px; }
+        .vert-title span { 
+            position: absolute; 
+            left: 50%; 
+            top: 50%;
+            transform: translate(-50%, -50%) rotate(-90deg); 
+            font-size: 10px; 
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        .val-text {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center; /* Alineación central estricta matemática */
+            overflow: hidden;
+        }
+        
+        .val-text span {
+            font-weight: bold;
+            white-space: nowrap;
+            text-align: center;
+            line-height: 0.9; /* Esto evita que una letra enorme expanda la caja hacia abajo */
+        }
+        
+        /* Controles de tamaño individuales para lograr lo que pediste */
+        .val-sebango { font-size: 65px; letter-spacing: -1px; } /* KTMEX GIGANTE */
+        .val-pno { font-size: 40px; letter-spacing: -0.5px; }    /* # PARTE MÁS PEQUEÑO */
+        .val-cliente { font-size: 55px; letter-spacing: -1px; }  /* ID CLIENTE GRANDE PERO MENOR AL SEBANGO */
 
         .right-panel { width: 62%; display: flex; }
         .img-area { flex: 1; padding: 8px; display: flex; align-items: center; justify-content: center; position: relative; border-right: 1px solid black; }
@@ -81,7 +111,7 @@
         
         .tekin-label { position: absolute; bottom: 4px; right: 4px; border: 1px solid black; background: white; padding: 1px 8px; font-weight: bold; font-size: 16px; }
         
-        .qr-area { width: 115px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 5px; }
+        .qr-area { width: 115px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 5px; position: relative; }
         .seq-box { font-weight: bold; font-size: 20px; border: 1px solid black; width: 85px; text-align: center; background: #eee; margin-bottom: 8px; padding: 2px 0; }
         
         .status-cloud { font-size: 11px; margin-left: 8px; font-weight: bold; }
@@ -152,6 +182,7 @@
 
 <script>
     let productImg = "";
+    let currentRowData = null; // Variable global para guardar la fila actual y referenciar columnas D, E, O
     const SHEET_ID = "1GkWY2r-kz_wfv_-LPEeFEdKe1qNILTV86pln2xg_rIM";
     const ADMIN_PASS = "pcpc2026ktmex";
     let isAdmin = false;
@@ -179,7 +210,17 @@
         fieldsToToggle.forEach(id => {
             const el = document.getElementById(id);
             if (el.tagName === "SELECT") {
-                el.disabled = !enable;
+                if (id === 'area') {
+                    // Si el cliente es WD, el área de kanban siempre se queda habilitada
+                    const colK = (currentRowData && currentRowData[10] !== undefined && currentRowData[10] !== null) ? String(currentRowData[10]).trim().toUpperCase() : "";
+                    if (colK === "WD") {
+                        el.disabled = false;
+                    } else {
+                        el.disabled = !enable;
+                    }
+                } else {
+                    el.disabled = !enable;
+                }
             } else {
                 el.readOnly = !enable;
             }
@@ -233,6 +274,29 @@
         return rawUrl;
     }
 
+    // Lógica dinámica para cambiar Proceso Previo y Siguiente
+    function applyProcessRouting() {
+        if (!currentRowData || currentRowData.length === 0) return;
+        
+        // Índices de columnas (Base 0): Col D = 3, Col E = 4, Col K = 10, Col O = 14
+        const colK = (currentRowData[10] !== undefined && currentRowData[10] !== null) ? String(currentRowData[10]).trim().toUpperCase() : "";
+        const colD = (currentRowData[3] !== undefined && currentRowData[3] !== null) ? String(currentRowData[3]).trim() : "";
+        const colE = (currentRowData[4] !== undefined && currentRowData[4] !== null) ? String(currentRowData[4]).trim() : "";
+        const colO = (currentRowData[14] !== undefined && currentRowData[14] !== null) ? String(currentRowData[14]).trim() : "";
+
+        const areaVal = document.getElementById('area').value;
+
+        if (colK === "WD" && areaVal === "#FFFF00") { 
+            // Si es WD y se selecciona Amarillo
+            document.getElementById('prevProc').value = colE;
+            document.getElementById('nextProc').value = colO;
+        } else {
+            // Default o Rosa (Mantiene la ubicación original)
+            document.getElementById('prevProc').value = colD;
+            document.getElementById('nextProc').value = colE;
+        }
+    }
+
     function fetchDatabaseBySebango(targetSebango) {
         const statusEl = document.getElementById('cloud-status');
         if (!targetSebango) return;
@@ -281,16 +345,45 @@
                 );
 
                 if (match) {
+                    currentRowData = match; // Guardamos la fila entera
+                    const colK_Client = (currentRowData[10] !== undefined && currentRowData[10] !== null) ? String(currentRowData[10]).trim().toUpperCase() : "";
+
                     const getVal = (colName) => {
                         const idx = getColIndex(colName);
                         return (idx !== -1 && match[idx] !== undefined) ? String(match[idx]) : "";
                     };
 
-                    document.getElementById('area').value = mapAreaColor(getVal("AKAN"));
+                    const areaSelect = document.getElementById('area');
+
+                    // Lógica para WD
+                    if (colK_Client === "WD") {
+                        areaSelect.innerHTML = `
+                            <option value="#FFC0CB">Estampado (Rosa)</option>
+                            <option value="#FFFF00">Subensamble (Amarillo)</option>
+                        `;
+                        areaSelect.disabled = false; // Habilitado independientemente del modo admin
+                    } else {
+                        areaSelect.innerHTML = `
+                            <option value="#27ae60">Producto Terminado (Verde)</option>
+                            <option value="#FFFF00">Subensamble (Amarillo)</option>
+                            <option value="#FFC0CB">Estampado (Rosa)</option>
+                        `;
+                        areaSelect.disabled = !isAdmin; // Restringido al admin
+                    }
+
+                    // Forzar valor inicial correcto
+                    let initialArea = mapAreaColor(getVal("AKAN"));
+                    if (colK_Client === "WD" && initialArea === "#27ae60") {
+                        initialArea = "#FFC0CB"; // Si era Verde pero es WD, forzar a Rosa
+                    }
+                    areaSelect.value = initialArea;
+
                     document.getElementById('side').value = mapSideColor(getVal("LADO"));
                     document.getElementById('tekin').value = getVal("TEKIN");
-                    document.getElementById('prevProc').value = getVal("PP");
-                    document.getElementById('nextProc').value = getVal("SP");
+                    
+                    // Aplicar la lógica dinámica de Proceso Previo y Siguiente
+                    applyProcessRouting();
+
                     document.getElementById('pack').value = getVal("EMP");
                     document.getElementById('qpc').value = getVal("QPC");
                     document.getElementById('clientId').value = getVal("IDC");
@@ -308,6 +401,7 @@
                     statusEl.innerText = "Datos Cargados";
                     updateColors();
                 } else {
+                    currentRowData = null;
                     statusEl.style.color = "#e67e22";
                     statusEl.innerText = `⚠️ '${targetSebango}' No encontrado. Para,Llama y Espera!`;
                 }
@@ -342,6 +436,7 @@
     });
 
     function updateColors() {
+        applyProcessRouting(); // Aplica la condición WD cada vez que cambias el Select de Área
         document.documentElement.style.setProperty('--area-color', document.getElementById('area').value);
         document.documentElement.style.setProperty('--side-color', document.getElementById('side').value);
         renderPreview(document.getElementById('seqStart').value);
@@ -351,6 +446,12 @@
         const box = document.getElementById('kanban-box');
         const sideVal = document.getElementById('side').value;
         const textColor = sideVal === "#333333" ? "white" : "black";
+        
+        const today = new Date();
+        const dd = String(today.getDate()).padStart(2, '0');
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const yyyy = today.getFullYear();
+        const dateStr = `${dd}/${mm}/${yyyy}`;
 
         box.innerHTML = `
             <div class="header-row">
@@ -363,9 +464,18 @@
             </div>
             <div class="body-row">
                 <div class="left-panel" style="color: ${textColor}">
-                    <div class="side-field val-large" data-label="KTMEX">${document.getElementById('sebango').value}</div>
-                    <div class="side-field val-mid" data-label="# PARTE">${document.getElementById('pno').value}</div>
-                    <div class="side-field val-large" data-label="CLIENTE">${document.getElementById('clientId').value}</div>
+                    <div class="side-field">
+                        <div class="vert-title"><span>KTMEX</span></div>
+                        <div class="val-text"><span class="val-sebango">${document.getElementById('sebango').value}</span></div>
+                    </div>
+                    <div class="side-field">
+                        <div class="vert-title"><span># PARTE</span></div>
+                        <div class="val-text"><span class="val-pno">${document.getElementById('pno').value}</span></div>
+                    </div>
+                    <div class="side-field">
+                        <div class="vert-title"><span>ID CLIENTE</span></div>
+                        <div class="val-text"><span class="val-cliente">${document.getElementById('clientId').value}</span></div>
+                    </div>
                 </div>
                 <div class="right-panel">
                     <div class="img-area">
@@ -373,8 +483,10 @@
                         <div class="tekin-label">${document.getElementById('tekin').value}</div>
                     </div>
                     <div class="qr-area">
+                        <div style="font-size: 10px; font-weight: bold; margin-bottom: 2px;">SECUENCIA</div>
                         <div class="seq-box" id="seq-val-target">${currentSeq}</div>
                         <div id="qr-target-element"></div>
+                        <div style="position: absolute; bottom: 2px; right: 5px; font-size: 9px; font-weight: bold;">${dateStr}</div>
                     </div>
                 </div>
             </div>
@@ -418,16 +530,24 @@
             await new Promise(res => imgObj.onload = res);
         }
 
-        // Obtener la posición de la zona del QR/secuencia dentro de la etiqueta
-        const qrAreaEl = kanbanBox.querySelector('.qr-area');
+        // Identificadores exactos para borrar y reemplazar solo la secuencia y el QR
+        const seqEl = document.getElementById('seq-val-target');
+        const qrEl = document.getElementById('qr-target-element');
+        
         const boxRect = kanbanBox.getBoundingClientRect();
-        const qrRect = qrAreaEl.getBoundingClientRect();
+        const seqRect = seqEl.getBoundingClientRect();
+        const qrRect = qrEl.getBoundingClientRect();
 
         const scale = 2; // Alta calidad (escala 2)
-        const relX = (qrRect.left - boxRect.left) * scale;
-        const relY = (qrRect.top - boxRect.top) * scale;
-        const relW = qrRect.width * scale;
-        const relH = qrRect.height * scale;
+        
+        // Coordenadas exactas relativas a la caja principal
+        const sX = (seqRect.left - boxRect.left) * scale;
+        const sY = (seqRect.top - boxRect.top) * scale;
+        const sW = seqRect.width * scale;
+        const sH = seqRect.height * scale;
+
+        const qX = (qrRect.left - boxRect.left) * scale;
+        const qY = (qrRect.top - boxRect.top) * scale;
 
         // Captura base inicial rápida mediante html2canvas
         const baseCanvas = await html2canvas(kanbanBox, { 
@@ -439,9 +559,11 @@
 
         const labelWidth = 205.9; // Ancho ajustado a hoja carta
         const labelHeight = 88;
-        const xPos = 5;
-        const yOffset = 5;
-        const spacing = 3;
+        
+        // MODIFICACIÓN PARA PEGADO A LA ESQUINA SUPERIOR IZQUIERDA Y SIN BORDES
+        const xPos = 0; // Margen izquierdo en 0
+        const yOffset = 0; // Margen superior en 0
+        const spacing = 0; // Sin espacio entre etiquetas para corte único
 
         let countInPage = 0;
         const total = (end - start) + 1;
@@ -461,32 +583,27 @@
         for (let i = start; i <= end; i++) {
             const currentIdx = (i - start) + 1;
 
-            // 1. Copiar plantilla base completa
+            // 1. Copiar plantilla base completa (esto incluye la palabra SECUENCIA y la FECHA intactas)
             ctx.drawImage(baseCanvas, 0, 0);
 
-            // 2. Blanquear área de la secuencia y QR
+            // 2. Blanquear SOLAMENTE el área del QR
             ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(relX, relY, relW, relH);
+            ctx.fillRect(qX, qY, 90 * scale, 90 * scale);
 
-            // 3. Dibujar Caja de Secuencia
-            const seqBoxW = 85 * scale;
-            const seqBoxH = 32 * scale;
-            const seqBoxX = relX + (relW - seqBoxW) / 2;
-            const seqBoxY = relY + 8 * scale;
-
+            // 3. Dibujar SOLAMENTE la Caja de Secuencia
             ctx.fillStyle = '#EEEEEE';
-            ctx.fillRect(seqBoxX, seqBoxY, seqBoxW, seqBoxH);
+            ctx.fillRect(sX, sY, sW, sH);
             ctx.strokeStyle = '#000000';
             ctx.lineWidth = 1 * scale;
-            ctx.strokeRect(seqBoxX, seqBoxY, seqBoxW, seqBoxH);
+            ctx.strokeRect(sX, sY, sW, sH);
 
             ctx.fillStyle = '#000000';
             ctx.font = `bold ${20 * scale}px Arial`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(i.toString(), seqBoxX + (seqBoxW / 2), seqBoxY + (seqBoxH / 2));
+            ctx.fillText(i.toString(), sX + (sW / 2), sY + (sH / 2));
 
-            // 4. Generar código QR
+            // 4. Generar código QR nuevo
             tempQrDiv.innerHTML = "";
             new QRCode(tempQrDiv, {
                 text: `${i}-${document.getElementById('pno').value}-${document.getElementById('sebango').value}`,
@@ -501,11 +618,8 @@
             const qrCanvas = tempQrDiv.querySelector('canvas');
             const qrImg = tempQrDiv.querySelector('img');
 
-            const qrX = relX + (relW - (90 * scale)) / 2;
-            const qrY = seqBoxY + seqBoxH + (10 * scale);
-
             if (qrCanvas && qrCanvas.width > 0) {
-                ctx.drawImage(qrCanvas, qrX, qrY, 90 * scale, 90 * scale);
+                ctx.drawImage(qrCanvas, qX, qY, 90 * scale, 90 * scale);
             } else if (qrImg) {
                 if (!qrImg.complete) {
                     await new Promise(resolve => {
@@ -513,7 +627,7 @@
                         qrImg.onerror = resolve;
                     });
                 }
-                ctx.drawImage(qrImg, qrX, qrY, 90 * scale, 90 * scale);
+                ctx.drawImage(qrImg, qX, qY, 90 * scale, 90 * scale);
             }
 
             // 5. Agregar a la hoja PDF
