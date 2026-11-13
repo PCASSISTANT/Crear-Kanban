@@ -21,6 +21,15 @@
         .btn-admin-toggle:hover { background: #9b59b6; }
         .admin-badge { font-size: 11px; background: #27ae60; color: white; padding: 2px 6px; border-radius: 3px; display: none; margin-left: 8px; vertical-align: middle; }
 
+        /* --- NUEVO ESTILO PARA BOTÓN Y MODAL DE IMPRESIÓN MASIVA --- */
+        .btn-masiva { background: #f39c12; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 11px; flex: initial; }
+        .btn-masiva:hover { background: #e67e22; }
+        
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center; }
+        .modal-content { background: #25252b; padding: 20px 25px; border-radius: 8px; width: 300px; box-shadow: 0 4px 20px rgba(0,0,0,0.9); border: 1px solid #444; }
+        .modal-content h3 { margin-top: 0; color: #f39c12; text-align: center; text-transform: uppercase; font-size: 16px; }
+        /* ------------------------------------------------------------ */
+
         .grid-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .full-width { grid-column: span 2; }
         .form-group { display: flex; flex-direction: column; margin-bottom: 8px; }
@@ -127,7 +136,11 @@
                 KTMEX | Label System 
                 <span id="admin-badge" class="admin-badge">ADMIN</span>
             </h2>
-            <button class="btn-admin-toggle" onclick="toggleAdminMode()">Modo Admin 🔒</button>
+            <!-- AGREGAMOS EL CONTENEDOR DE BOTONES SUPERIORES AQUÍ -->
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-masiva" onclick="abrirModalMasiva()">🖨️ Imp. Masiva</button>
+                <button class="btn-admin-toggle" onclick="toggleAdminMode()">Modo Admin 🔒</button>
+            </div>
         </div>
         
         <div class="grid-inputs">
@@ -177,6 +190,25 @@
     <div class="preview-container">
         <h3 style="color:#999">VISTA PREVIA</h3>
         <div id="kanban-box" class="kanban-render"></div>
+    </div>
+</div>
+
+<!-- NUEVO: MODAL PARA IMPRESIÓN MASIVA -->
+<div id="modal-masiva" class="modal-overlay">
+    <div class="modal-content">
+        <h3>🖨️ Impresión Masiva</h3>
+        <div class="form-group">
+            <label>Sebango a imprimir:</label>
+            <input type="text" id="masiva-sebango" style="text-transform: uppercase; font-size: 16px; font-weight: bold; border-color: #f39c12;" placeholder="Ej. A123">
+        </div>
+        <div class="form-group" style="margin-top: 15px;">
+            <label>Cantidad de Kanban:</label>
+            <input type="number" id="masiva-cantidad" min="1" value="1" style="font-size: 16px; font-weight: bold; border-color: #f39c12;">
+        </div>
+        <div class="btn-group" style="margin-top: 25px;">
+            <button style="background: #27ae60; color: white;" onclick="ejecutarMasiva()">Generar Automático</button>
+            <button style="background: #e74c3c; color: white;" onclick="cerrarModalMasiva()">Cancelar</button>
+        </div>
     </div>
 </div>
 
@@ -658,6 +690,63 @@
         progressEl.innerText = "✅ PDF tamaño Carta generado exitosamente";
         setTimeout(() => progressEl.innerText = "", 4000);
     }
+
+    // ========================================================
+    // --- NUEVA LÓGICA DE IMPRESIÓN MASIVA ---
+    // ========================================================
+    function abrirModalMasiva() {
+        document.getElementById('modal-masiva').style.display = 'flex';
+        document.getElementById('masiva-sebango').focus();
+    }
+
+    function cerrarModalMasiva() {
+        document.getElementById('modal-masiva').style.display = 'none';
+    }
+
+    function ejecutarMasiva() {
+        const seb = document.getElementById('masiva-sebango').value.trim().toUpperCase();
+        const cant = parseInt(document.getElementById('masiva-cantidad').value);
+
+        if (!seb || isNaN(cant) || cant < 1) {
+            alert("Por favor ingresa un Sebango válido y una cantidad mayor a 0.");
+            return;
+        }
+
+        // 1. Llenamos el formulario principal
+        document.getElementById('sebango').value = seb;
+        document.getElementById('seqStart').value = 1;
+        document.getElementById('seqEnd').value = cant;
+
+        cerrarModalMasiva();
+
+        // 2. Disparamos tu función de búsqueda original
+        fetchDatabaseBySebango(seb);
+
+        // 3. Interceptamos de manera segura la respuesta de Google Sheets 
+        //    (para ejecutar el PDF en automático solo si cargó bien)
+        const originalHandle = window.handleGvizResponse;
+        window.handleGvizResponse = async function(response) {
+            
+            // Ejecutamos TODA tu lógica original primero
+            await originalHandle(response);
+            
+            // Verificamos si los datos se encontraron correctamente
+            if (document.getElementById('cloud-status').innerText === "Datos Cargados") {
+                // Generamos en automático el PDF
+                generateExactPDF();
+            } else {
+                alert(`Hubo un problema cargando el Sebango '${seb}'. Verifica e intenta de nuevo.`);
+            }
+        };
+    }
+    
+    // Auto-convertir a mayúsculas el campo de sebango del modal
+    document.getElementById('masiva-sebango').addEventListener('input', (e) => {
+        const start = e.target.selectionStart;
+        const end = e.target.selectionEnd;
+        e.target.value = e.target.value.toUpperCase();
+        e.target.setSelectionRange(start, end);
+    });
 </script>
 
 </body>
