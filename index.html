@@ -21,15 +21,6 @@
         .btn-admin-toggle:hover { background: #9b59b6; }
         .admin-badge { font-size: 11px; background: #27ae60; color: white; padding: 2px 6px; border-radius: 3px; display: none; margin-left: 8px; vertical-align: middle; }
 
-        /* --- NUEVO ESTILO PARA BOTÓN Y MODAL DE IMPRESIÓN MASIVA --- */
-        .btn-masiva { background: #f39c12; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 11px; flex: initial; }
-        .btn-masiva:hover { background: #e67e22; }
-        
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center; }
-        .modal-content { background: #25252b; padding: 20px 25px; border-radius: 8px; width: 300px; box-shadow: 0 4px 20px rgba(0,0,0,0.9); border: 1px solid #444; }
-        .modal-content h3 { margin-top: 0; color: #f39c12; text-align: center; text-transform: uppercase; font-size: 16px; }
-        /* ------------------------------------------------------------ */
-
         .grid-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .full-width { grid-column: span 2; }
         .form-group { display: flex; flex-direction: column; margin-bottom: 8px; }
@@ -125,6 +116,23 @@
         
         .status-cloud { font-size: 11px; margin-left: 8px; font-weight: bold; }
         #pdf-progress { margin-top: 10px; font-weight: bold; color: #f39c12; font-size: 13px; text-align: center; }
+
+        /* NUEVOS ESTILOS - IMPRESIÓN MASIVA */
+        .btn-massive { background: #f39c12; color: white; }
+        .btn-massive:hover { background: #e67e22; }
+
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.8); }
+        .modal-content { background-color: #25252b; margin: 5% auto; padding: 25px; border: 1px solid #444; width: 70%; max-width: 800px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.8); color: #e0e0e0; }
+        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; line-height: 1;}
+        .close:hover { color: #fff; }
+        .massive-table-container { max-height: 400px; overflow-y: auto; margin-bottom: 15px; border-radius: 4px;}
+        #massive-table { width: 100%; border-collapse: collapse; }
+        #massive-table th, #massive-table td { border: 1px solid #444; padding: 10px; text-align: center; }
+        #massive-table th { background-color: #1a1a1d; position: sticky; top: 0; z-index: 2; }
+        #massive-table input { width: 90%; text-align: center; background: #121214; border: 1px solid #555; color: white; padding: 8px; border-radius: 4px;}
+        .btn-delete { background: #e74c3c; color: white; padding: 6px 12px; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; text-transform: uppercase; font-size: 10px;}
+        .btn-delete:hover { background: #c0392b; }
+        .btn-add-row { background: #27ae60; color: white; padding: 10px 15px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; text-transform: uppercase;}
     </style>
 </head>
 <body>
@@ -136,11 +144,7 @@
                 KTMEX | Label System 
                 <span id="admin-badge" class="admin-badge">ADMIN</span>
             </h2>
-            <!-- AGREGAMOS EL CONTENEDOR DE BOTONES SUPERIORES AQUÍ -->
-            <div style="display: flex; gap: 10px;">
-                <button class="btn-masiva" onclick="abrirModalMasiva()">🖨️ Imp. Masiva</button>
-                <button class="btn-admin-toggle" onclick="toggleAdminMode()">Modo Admin 🔒</button>
-            </div>
+            <button class="btn-admin-toggle" onclick="toggleAdminMode()">Modo Admin 🔒</button>
         </div>
         
         <div class="grid-inputs">
@@ -183,6 +187,8 @@
         <div class="btn-group">
             <button class="btn-preview" onclick="renderPreview(document.getElementById('seqStart').value)">Vista Previa</button>
             <button class="btn-pdf" id="btn-pdf" onclick="generateExactPDF()">Generar PDF</button>
+            <!-- BOTÓN IMPRESIÓN MASIVA AÑADIDO AQUÍ -->
+            <button class="btn-massive" onclick="openMassiveModal()">Impresión Masiva</button>
         </div>
         <div id="pdf-progress"></div>
     </div>
@@ -193,22 +199,37 @@
     </div>
 </div>
 
-<!-- NUEVO: MODAL PARA IMPRESIÓN MASIVA -->
-<div id="modal-masiva" class="modal-overlay">
+<!-- NUEVO MODAL PARA IMPRESIÓN MASIVA -->
+<div id="massive-modal" class="modal">
     <div class="modal-content">
-        <h3>🖨️ Impresión Masiva</h3>
-        <div class="form-group">
-            <label>Sebango a imprimir:</label>
-            <input type="text" id="masiva-sebango" style="text-transform: uppercase; font-size: 16px; font-weight: bold; border-color: #f39c12;" placeholder="Ej. A123">
+        <span class="close" onclick="closeMassiveModal()">&times;</span>
+        <h2 style="color: #f39c12; margin-top: 0;">Impresión Masiva de Etiquetas</h2>
+        <p style="font-size: 13px; color: #aaa;">Ingresa los Sebangos y la cantidad de Kanbans a imprimir para cada uno. (El número de parte se vinculará automáticamente).</p>
+        
+        <div class="massive-table-container">
+            <table id="massive-table">
+                <thead>
+                    <tr>
+                        <th>Sebango</th>
+                        <th>Cantidad de Kanbans</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="massive-tbody">
+                    <tr>
+                        <td><input type="text" class="mass-sebango" placeholder="Ej. A123" oninput="this.value = this.value.toUpperCase()"></td>
+                        <td><input type="number" class="mass-qty" value="1" min="1"></td>
+                        <td><button class="btn-delete" onclick="this.closest('tr').remove()">Eliminar</button></td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
-        <div class="form-group" style="margin-top: 15px;">
-            <label>Cantidad de Kanban:</label>
-            <input type="number" id="masiva-cantidad" min="1" value="1" style="font-size: 16px; font-weight: bold; border-color: #f39c12;">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+            <button class="btn-add-row" onclick="addMassiveRow()">+ Añadir Fila</button>
+            <button class="btn-massive" id="btn-massive-pdf" style="padding: 12px 20px; font-size: 14px;" onclick="generateMassivePDF()">Generar PDF Masivo</button>
         </div>
-        <div class="btn-group" style="margin-top: 25px;">
-            <button style="background: #27ae60; color: white;" onclick="ejecutarMasiva()">Generar Automático</button>
-            <button style="background: #e74c3c; color: white;" onclick="cerrarModalMasiva()">Cancelar</button>
-        </div>
+        <div id="massive-progress" style="margin-top: 15px; font-weight: bold; color: #f39c12; text-align: center;"></div>
     </div>
 </div>
 
@@ -691,62 +712,206 @@
         setTimeout(() => progressEl.innerText = "", 4000);
     }
 
-    // ========================================================
-    // --- NUEVA LÓGICA DE IMPRESIÓN MASIVA ---
-    // ========================================================
-    function abrirModalMasiva() {
-        document.getElementById('modal-masiva').style.display = 'flex';
-        document.getElementById('masiva-sebango').focus();
+    // =====================================================================
+    // NUEVA LÓGICA: IMPRESIÓN MASIVA (SIN TOCAR NADA DE LO ANTERIOR)
+    // =====================================================================
+    
+    function openMassiveModal() { 
+        document.getElementById('massive-modal').style.display = 'block'; 
+    }
+    
+    function closeMassiveModal() { 
+        document.getElementById('massive-modal').style.display = 'none'; 
+    }
+    
+    function addMassiveRow() {
+        const tbody = document.getElementById('massive-tbody');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="text" class="mass-sebango" placeholder="Ej. A123" oninput="this.value = this.value.toUpperCase()"></td>
+            <td><input type="number" class="mass-qty" value="1" min="1"></td>
+            <td><button class="btn-delete" onclick="this.closest('tr').remove()">Eliminar</button></td>
+        `;
+        tbody.appendChild(tr);
     }
 
-    function cerrarModalMasiva() {
-        document.getElementById('modal-masiva').style.display = 'none';
+    // Función puente: Usa exactamente tu lógica para buscar y actualizar la interfaz, 
+    // pero nos avisa mediante una promesa cuándo terminó.
+    function fetchAndWait(sebango) {
+        return new Promise((resolve) => {
+            document.getElementById('cloud-status').innerText = "⏳ Consultando...";
+            document.getElementById('sebango').value = sebango;
+            
+            // Disparamos exactamente tu misma función de búsqueda
+            fetchDatabaseBySebango(sebango);
+
+            // Observamos tu propia interfaz para saber cuándo cargó exitosamente
+            const checkInterval = setInterval(() => {
+                const status = document.getElementById('cloud-status').innerText;
+                if (!status.includes("⏳ Consultando...") && status !== "") {
+                    clearInterval(checkInterval);
+                    resolve(status.includes("Datos Cargados"));
+                }
+            }, 150);
+        });
     }
 
-    function ejecutarMasiva() {
-        const seb = document.getElementById('masiva-sebango').value.trim().toUpperCase();
-        const cant = parseInt(document.getElementById('masiva-cantidad').value);
+    async function generateMassivePDF() {
+        const rows = document.querySelectorAll('#massive-tbody tr');
+        const tasks = [];
+        rows.forEach(tr => {
+            const seb = tr.querySelector('.mass-sebango').value.trim().toUpperCase();
+            const qty = parseInt(tr.querySelector('.mass-qty').value);
+            if (seb && qty > 0) tasks.push({sebango: seb, qty: qty});
+        });
 
-        if (!seb || isNaN(cant) || cant < 1) {
-            alert("Por favor ingresa un Sebango válido y una cantidad mayor a 0.");
+        if (tasks.length === 0) {
+            alert("Agrega al menos un Sebango con cantidad.");
             return;
         }
 
-        // 1. Llenamos el formulario principal
-        document.getElementById('sebango').value = seb;
-        document.getElementById('seqStart').value = 1;
-        document.getElementById('seqEnd').value = cant;
+        const btnMassivePdf = document.getElementById('btn-massive-pdf');
+        const progressEl = document.getElementById('massive-progress');
+        btnMassivePdf.disabled = true;
 
-        cerrarModalMasiva();
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'letter');
+        
+        let countInPage = 0;
+        const labelWidth = 205.9; 
+        const labelHeight = 88;
+        const xPos = 0; 
+        const yOffset = 0; 
+        const spacing = 0;
+        let isFirstLabel = true;
 
-        // 2. Disparamos tu función de búsqueda original
-        fetchDatabaseBySebango(seb);
-
-        // 3. Interceptamos de manera segura la respuesta de Google Sheets 
-        //    (para ejecutar el PDF en automático solo si cargó bien)
-        const originalHandle = window.handleGvizResponse;
-        window.handleGvizResponse = async function(response) {
+        // Por cada fila solicitada en la tabla masiva
+        for (let t = 0; t < tasks.length; t++) {
+            const task = tasks[t];
+            progressEl.innerText = `[${t+1}/${tasks.length}] Buscando Sebango: ${task.sebango}...`;
             
-            // Ejecutamos TODA tu lógica original primero
-            await originalHandle(response);
-            
-            // Verificamos si los datos se encontraron correctamente
-            if (document.getElementById('cloud-status').innerText === "Datos Cargados") {
-                // Generamos en automático el PDF
-                generateExactPDF();
-            } else {
-                alert(`Hubo un problema cargando el Sebango '${seb}'. Verifica e intenta de nuevo.`);
+            // Usamos tu buscador y esperamos a que tu UI se pinte sola
+            const found = await fetchAndWait(task.sebango);
+            if (!found) {
+                console.warn(`Sebango ${task.sebango} no encontrado. Omitiendo...`);
+                continue;
             }
-        };
+
+            // Aseguramos que si tu función cargó imagen, ya esté lista
+            renderPreview(1); 
+            const imgObj = document.getElementById('preview-img-obj');
+            if (imgObj && !imgObj.complete) {
+                await new Promise(res => { imgObj.onload = res; imgObj.onerror = res; });
+            }
+
+            progressEl.innerText = `[${t+1}/${tasks.length}] Generando ${task.qty} etiquetas para ${task.sebango}...`;
+
+            // A partir de aquí aplicamos EXACTAMENTE TU MISMA LÓGICA ULTRA RÁPIDA de impresión
+            const kanbanBox = document.getElementById('kanban-box');
+            const seqEl = document.getElementById('seq-val-target');
+            const qrEl = document.getElementById('qr-target-element');
+            
+            const boxRect = kanbanBox.getBoundingClientRect();
+            const seqRect = seqEl.getBoundingClientRect();
+            const qrRect = qrEl.getBoundingClientRect();
+            const scale = 2; 
+
+            const sX = (seqRect.left - boxRect.left) * scale;
+            const sY = (seqRect.top - boxRect.top) * scale;
+            const sW = seqRect.width * scale;
+            const sH = seqRect.height * scale;
+
+            const qX = (qrRect.left - boxRect.left) * scale;
+            const qY = (qrRect.top - boxRect.top) * scale;
+
+            const baseCanvas = await html2canvas(kanbanBox, { 
+                scale: scale, useCORS: true, logging: false, animated: false 
+            });
+
+            const frameCanvas = document.createElement('canvas');
+            frameCanvas.width = baseCanvas.width;
+            frameCanvas.height = baseCanvas.height;
+            const ctx = frameCanvas.getContext('2d');
+
+            const tempQrDiv = document.createElement('div');
+            tempQrDiv.style.position = 'absolute';
+            tempQrDiv.style.left = '-9999px';
+            document.body.appendChild(tempQrDiv);
+
+            // Generamos las cantidades de este Kanban del 1 a la cantidad especificada
+            for (let i = 1; i <= task.qty; i++) {
+                ctx.drawImage(baseCanvas, 0, 0);
+                
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(qX, qY, 90 * scale, 90 * scale);
+
+                ctx.fillStyle = '#EEEEEE';
+                ctx.fillRect(sX, sY, sW, sH);
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 1 * scale;
+                ctx.strokeRect(sX, sY, sW, sH);
+
+                ctx.fillStyle = '#000000';
+                ctx.font = `bold ${20 * scale}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(i.toString(), sX + (sW / 2), sY + (sH / 2));
+
+                tempQrDiv.innerHTML = "";
+                new QRCode(tempQrDiv, {
+                    text: `${i}-${document.getElementById('pno').value}-${document.getElementById('sebango').value}`,
+                    width: 90 * scale,
+                    height: 90 * scale,
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+
+                await new Promise(resolve => setTimeout(resolve, 5));
+
+                const qrCanvas = tempQrDiv.querySelector('canvas');
+                const qrImg = tempQrDiv.querySelector('img');
+
+                if (qrCanvas && qrCanvas.width > 0) {
+                    ctx.drawImage(qrCanvas, qX, qY, 90 * scale, 90 * scale);
+                } else if (qrImg) {
+                    if (!qrImg.complete) {
+                        await new Promise(resolve => { qrImg.onload = resolve; qrImg.onerror = resolve; });
+                    }
+                    ctx.drawImage(qrImg, qX, qY, 90 * scale, 90 * scale);
+                }
+
+                if (!isFirstLabel && countInPage === 3) {
+                    pdf.addPage();
+                    countInPage = 0;
+                }
+                isFirstLabel = false;
+
+                const imgData = frameCanvas.toDataURL('image/jpeg', 0.92);
+                const yPos = yOffset + (countInPage * (labelHeight + spacing));
+
+                pdf.addImage(imgData, 'JPEG', xPos, yPos, labelWidth, labelHeight);
+                countInPage++;
+                
+                if (i % 10 === 0) {
+                    progressEl.innerText = `[${t+1}/${tasks.length}] Etiqueta ${i} de ${task.qty} (${task.sebango})...`;
+                }
+            }
+            tempQrDiv.remove();
+        }
+
+        progressEl.innerText = "💾 Guardando archivo PDF Masivo...";
+        pdf.save(`KTMEX_Masivo_${new Date().getTime()}.pdf`);
+
+        btnMassivePdf.disabled = false;
+        progressEl.innerText = "✅ PDF Masivo generado exitosamente";
+        
+        // Limpiamos tu interfaz principal dejándola lista para uso normal
+        document.getElementById('sebango').value = "";
+        
+        setTimeout(() => { 
+            progressEl.innerText = ""; 
+            closeMassiveModal(); 
+        }, 3000);
     }
-    
-    // Auto-convertir a mayúsculas el campo de sebango del modal
-    document.getElementById('masiva-sebango').addEventListener('input', (e) => {
-        const start = e.target.selectionStart;
-        const end = e.target.selectionEnd;
-        e.target.value = e.target.value.toUpperCase();
-        e.target.setSelectionRange(start, end);
-    });
 </script>
 
 </body>
