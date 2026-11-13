@@ -116,23 +116,15 @@
         
         .status-cloud { font-size: 11px; margin-left: 8px; font-weight: bold; }
         #pdf-progress { margin-top: 10px; font-weight: bold; color: #f39c12; font-size: 13px; text-align: center; }
-
-        /* NUEVOS ESTILOS - IMPRESIÓN MASIVA */
-        .btn-massive { background: #f39c12; color: white; }
-        .btn-massive:hover { background: #e67e22; }
-
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.8); }
-        .modal-content { background-color: #25252b; margin: 5% auto; padding: 25px; border: 1px solid #444; width: 70%; max-width: 800px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.8); color: #e0e0e0; }
-        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; line-height: 1;}
-        .close:hover { color: #fff; }
-        .massive-table-container { max-height: 400px; overflow-y: auto; margin-bottom: 15px; border-radius: 4px;}
-        #massive-table { width: 100%; border-collapse: collapse; }
-        #massive-table th, #massive-table td { border: 1px solid #444; padding: 10px; text-align: center; }
-        #massive-table th { background-color: #1a1a1d; position: sticky; top: 0; z-index: 2; }
-        #massive-table input { width: 90%; text-align: center; background: #121214; border: 1px solid #555; color: white; padding: 8px; border-radius: 4px;}
-        .btn-delete { background: #e74c3c; color: white; padding: 6px 12px; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; text-transform: uppercase; font-size: 10px;}
-        .btn-delete:hover { background: #c0392b; }
-        .btn-add-row { background: #27ae60; color: white; padding: 10px 15px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; text-transform: uppercase;}
+        
+        /* --- ESTILOS PARA IMPRESIÓN MASIVA (NUEVO) --- */
+        .mass-print-panel { max-width: 1300px; margin: 20px auto 0 auto; background: #25252b; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .mass-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        .mass-row input { flex: 1; border: 2px solid #3498db; text-transform: uppercase; font-weight: bold; font-size: 16px;}
+        .mass-row .mass-qty { flex: 0.3; border: 1px solid #444; font-size: 16px; text-align: center;}
+        .btn-remove-row { flex: 0.1; background: #e74c3c; color: white; padding: 0; font-size: 16px; border-radius: 4px; }
+        .btn-remove-row:hover { background: #c0392b; }
+        #mass-progress { margin-top: 10px; font-weight: bold; color: #f39c12; font-size: 14px; text-align: center; }
     </style>
 </head>
 <body>
@@ -187,8 +179,6 @@
         <div class="btn-group">
             <button class="btn-preview" onclick="renderPreview(document.getElementById('seqStart').value)">Vista Previa</button>
             <button class="btn-pdf" id="btn-pdf" onclick="generateExactPDF()">Generar PDF</button>
-            <!-- BOTÓN IMPRESIÓN MASIVA AÑADIDO AQUÍ -->
-            <button class="btn-massive" onclick="openMassiveModal()">Impresión Masiva</button>
         </div>
         <div id="pdf-progress"></div>
     </div>
@@ -199,38 +189,22 @@
     </div>
 </div>
 
-<!-- NUEVO MODAL PARA IMPRESIÓN MASIVA -->
-<div id="massive-modal" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closeMassiveModal()">&times;</span>
-        <h2 style="color: #f39c12; margin-top: 0;">Impresión Masiva de Etiquetas</h2>
-        <p style="font-size: 13px; color: #aaa;">Ingresa los Sebangos y la cantidad de Kanbans a imprimir para cada uno. (El número de parte se vinculará automáticamente).</p>
-        
-        <div class="massive-table-container">
-            <table id="massive-table">
-                <thead>
-                    <tr>
-                        <th>Sebango</th>
-                        <th>Cantidad de Kanbans</th>
-                        <th>Acción</th>
-                    </tr>
-                </thead>
-                <tbody id="massive-tbody">
-                    <tr>
-                        <td><input type="text" class="mass-sebango" placeholder="Ej. A123" oninput="this.value = this.value.toUpperCase()"></td>
-                        <td><input type="number" class="mass-qty" value="1" min="1"></td>
-                        <td><button class="btn-delete" onclick="this.closest('tr').remove()">Eliminar</button></td>
-                    </tr>
-                </tbody>
-            </table>
+<!-- PANEL DE IMPRESIÓN MASIVA (NUEVO) -->
+<div class="mass-print-panel">
+    <h3 style="color:#3498db; margin-top: 0;">Impresión Masiva de Kanban</h3>
+    <p style="font-size: 12px; color: #aaa;">Ingresa múltiples Sebangos y la cantidad a imprimir de cada uno. Se generará un solo PDF continuo con todas las secuencias.</p>
+    <div id="mass-input-container">
+        <div class="mass-row">
+            <input type="text" placeholder="Escribir Sebango" class="mass-sebango">
+            <input type="number" placeholder="Cantidad de Etiquetas" class="mass-qty" min="1" value="1">
+            <button class="btn-remove-row" onclick="this.parentElement.remove()">X</button>
         </div>
-        
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
-            <button class="btn-add-row" onclick="addMassiveRow()">+ Añadir Fila</button>
-            <button class="btn-massive" id="btn-massive-pdf" style="padding: 12px 20px; font-size: 14px;" onclick="generateMassivePDF()">Generar PDF Masivo</button>
-        </div>
-        <div id="massive-progress" style="margin-top: 15px; font-weight: bold; color: #f39c12; text-align: center;"></div>
     </div>
+    <div class="btn-group" style="margin-top: 15px;">
+        <button onclick="addMassRow()" style="background: #27ae60; color: white;">+ Agregar Fila</button>
+        <button id="btn-mass-pdf" class="btn-pdf" onclick="generateMassPDF()">Generar PDF Masivo</button>
+    </div>
+    <div id="mass-progress"></div>
 </div>
 
 <script>
@@ -713,204 +687,268 @@
     }
 
     // =====================================================================
-    // NUEVA LÓGICA: IMPRESIÓN MASIVA (SIN TOCAR NADA DE LO ANTERIOR)
+    // --- LÓGICA DE IMPRESIÓN MASIVA (NUEVO) - 100% AISLADO ---
     // =====================================================================
     
-    function openMassiveModal() { 
-        document.getElementById('massive-modal').style.display = 'block'; 
-    }
-    
-    function closeMassiveModal() { 
-        document.getElementById('massive-modal').style.display = 'none'; 
-    }
-    
-    function addMassiveRow() {
-        const tbody = document.getElementById('massive-tbody');
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><input type="text" class="mass-sebango" placeholder="Ej. A123" oninput="this.value = this.value.toUpperCase()"></td>
-            <td><input type="number" class="mass-qty" value="1" min="1"></td>
-            <td><button class="btn-delete" onclick="this.closest('tr').remove()">Eliminar</button></td>
+    function addMassRow() {
+        const container = document.getElementById('mass-input-container');
+        const row = document.createElement('div');
+        row.className = 'mass-row';
+        row.innerHTML = `
+            <input type="text" placeholder="Escribir Sebango" class="mass-sebango" style="text-transform: uppercase;">
+            <input type="number" placeholder="Cantidad de Etiquetas" class="mass-qty" min="1" value="1">
+            <button class="btn-remove-row" onclick="this.parentElement.remove()">X</button>
         `;
-        tbody.appendChild(tr);
+        container.appendChild(row);
     }
 
-    // Función puente: Usa exactamente tu lógica para buscar y actualizar la interfaz, 
-    // pero nos avisa mediante una promesa cuándo terminó.
-    function fetchAndWait(sebango) {
-        return new Promise((resolve) => {
-            document.getElementById('cloud-status').innerText = "⏳ Consultando...";
-            document.getElementById('sebango').value = sebango;
-            
-            // Disparamos exactamente tu misma función de búsqueda
-            fetchDatabaseBySebango(sebango);
-
-            // Observamos tu propia interfaz para saber cuándo cargó exitosamente
-            const checkInterval = setInterval(() => {
-                const status = document.getElementById('cloud-status').innerText;
-                if (!status.includes("⏳ Consultando...") && status !== "") {
-                    clearInterval(checkInterval);
-                    resolve(status.includes("Datos Cargados"));
-                }
-            }, 150);
-        });
-    }
-
-    async function generateMassivePDF() {
-        const rows = document.querySelectorAll('#massive-tbody tr');
+    async function generateMassPDF() {
+        const rows = document.querySelectorAll('.mass-row');
         const tasks = [];
-        rows.forEach(tr => {
-            const seb = tr.querySelector('.mass-sebango').value.trim().toUpperCase();
-            const qty = parseInt(tr.querySelector('.mass-qty').value);
-            if (seb && qty > 0) tasks.push({sebango: seb, qty: qty});
+        
+        rows.forEach(row => {
+            const sebango = row.querySelector('.mass-sebango').value.trim().toUpperCase();
+            const qty = parseInt(row.querySelector('.mass-qty').value);
+            if (sebango && qty > 0) tasks.push({ sebango, qty });
         });
 
         if (tasks.length === 0) {
-            alert("Agrega al menos un Sebango con cantidad.");
+            alert("Agrega al menos un Sebango y una cantidad válida.");
             return;
         }
 
-        const btnMassivePdf = document.getElementById('btn-massive-pdf');
-        const progressEl = document.getElementById('massive-progress');
-        btnMassivePdf.disabled = true;
+        const btn = document.getElementById('btn-mass-pdf');
+        const progress = document.getElementById('mass-progress');
+        btn.disabled = true;
+        progress.innerText = "⏳ Descargando base de datos para lectura masiva...";
 
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('p', 'mm', 'letter');
-        
-        let countInPage = 0;
-        const labelWidth = 205.9; 
-        const labelHeight = 88;
-        const xPos = 0; 
-        const yOffset = 0; 
-        const spacing = 0;
-        let isFirstLabel = true;
+        try {
+            // Descarga única de la base de datos (mucho más rápido que tu fetch individual)
+            const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+            const response = await fetch(url);
+            const text = await response.text();
+            const jsonString = text.substring(text.indexOf('(') + 1, text.lastIndexOf(')'));
+            const table = JSON.parse(jsonString).table;
 
-        // Por cada fila solicitada en la tabla masiva
-        for (let t = 0; t < tasks.length; t++) {
-            const task = tasks[t];
-            progressEl.innerText = `[${t+1}/${tasks.length}] Buscando Sebango: ${task.sebango}...`;
-            
-            // Usamos tu buscador y esperamos a que tu UI se pinte sola
-            const found = await fetchAndWait(task.sebango);
-            if (!found) {
-                console.warn(`Sebango ${task.sebango} no encontrado. Omitiendo...`);
-                continue;
+            let headers = table.cols.map(c => (c.label || c.id || "").toString().trim().toUpperCase());
+            let dataMatrix = table.rows.map(r => r.c ? r.c.map(cell => (cell && cell.v !== null && cell.v !== undefined) ? String(cell.v).trim() : "") : []);
+
+            let sebangoColIdx = headers.findIndex(h => h.includes("SEBANGO"));
+            if (sebangoColIdx === -1) {
+                for (let i = 0; i < dataMatrix.length; i++) {
+                    const rowUpper = dataMatrix[i].map(x => x.toUpperCase());
+                    const idx = rowUpper.findIndex(x => x.includes("SEBANGO"));
+                    if (idx !== -1) {
+                        headers = rowUpper;
+                        sebangoColIdx = idx;
+                        dataMatrix = dataMatrix.slice(i + 1);
+                        break;
+                    }
+                }
             }
 
-            // Aseguramos que si tu función cargó imagen, ya esté lista
-            renderPreview(1); 
-            const imgObj = document.getElementById('preview-img-obj');
-            if (imgObj && !imgObj.complete) {
-                await new Promise(res => { imgObj.onload = res; imgObj.onerror = res; });
-            }
+            if (sebangoColIdx === -1) throw new Error("Columna SEBANGO no encontrada en la hoja.");
 
-            progressEl.innerText = `[${t+1}/${tasks.length}] Generando ${task.qty} etiquetas para ${task.sebango}...`;
-
-            // A partir de aquí aplicamos EXACTAMENTE TU MISMA LÓGICA ULTRA RÁPIDA de impresión
-            const kanbanBox = document.getElementById('kanban-box');
-            const seqEl = document.getElementById('seq-val-target');
-            const qrEl = document.getElementById('qr-target-element');
+            const getColIndex = (colName) => headers.findIndex(h => h === colName.toUpperCase() || h.includes(colName.toUpperCase()));
             
-            const boxRect = kanbanBox.getBoundingClientRect();
-            const seqRect = seqEl.getBoundingClientRect();
-            const qrRect = qrEl.getBoundingClientRect();
-            const scale = 2; 
-
-            const sX = (seqRect.left - boxRect.left) * scale;
-            const sY = (seqRect.top - boxRect.top) * scale;
-            const sW = seqRect.width * scale;
-            const sH = seqRect.height * scale;
-
-            const qX = (qrRect.left - boxRect.left) * scale;
-            const qY = (qrRect.top - boxRect.top) * scale;
-
-            const baseCanvas = await html2canvas(kanbanBox, { 
-                scale: scale, useCORS: true, logging: false, animated: false 
-            });
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'letter');
+            const labelWidth = 205.9;
+            const labelHeight = 88;
+            let countInPage = 0;
+            let isFirstPage = true;
 
             const frameCanvas = document.createElement('canvas');
-            frameCanvas.width = baseCanvas.width;
-            frameCanvas.height = baseCanvas.height;
-            const ctx = frameCanvas.getContext('2d');
-
             const tempQrDiv = document.createElement('div');
             tempQrDiv.style.position = 'absolute';
             tempQrDiv.style.left = '-9999px';
             document.body.appendChild(tempQrDiv);
 
-            // Generamos las cantidades de este Kanban del 1 a la cantidad especificada
-            for (let i = 1; i <= task.qty; i++) {
-                ctx.drawImage(baseCanvas, 0, 0);
+            const box = document.getElementById('kanban-box');
+            const today = new Date();
+            const dateStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+
+            for (let t = 0; t < tasks.length; t++) {
+                const task = tasks[t];
+                progress.innerText = `⚡ Consultando e inyectando modelo: ${task.sebango} (${t+1}/${tasks.length})...`;
                 
-                ctx.fillStyle = '#FFFFFF';
-                ctx.fillRect(qX, qY, 90 * scale, 90 * scale);
+                const match = dataMatrix.find(r => r[sebangoColIdx] && String(r[sebangoColIdx]).trim().toUpperCase() === task.sebango);
+                
+                if (!match) {
+                    console.warn(`Sebango no encontrado en masivo: ${task.sebango}`);
+                    continue; // Salta al siguiente si no existe
+                }
 
-                ctx.fillStyle = '#EEEEEE';
-                ctx.fillRect(sX, sY, sW, sH);
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 1 * scale;
-                ctx.strokeRect(sX, sY, sW, sH);
+                const getVal = (colName) => {
+                    const idx = getColIndex(colName);
+                    return (idx !== -1 && match[idx] !== undefined) ? String(match[idx]) : "";
+                };
 
-                ctx.fillStyle = '#000000';
-                ctx.font = `bold ${20 * scale}px Arial`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(i.toString(), sX + (sW / 2), sY + (sH / 2));
+                // Lógica idéntica de asignación del modo individual
+                const colK = getVal("AKAN"); 
+                const colK_Client = (match[10] !== undefined && match[10] !== null) ? String(match[10]).trim().toUpperCase() : "";
+                const prevProcVal = (match[3] !== undefined && match[3] !== null) ? String(match[3]).trim() : "";
+                const nextProcVal = (match[4] !== undefined && match[4] !== null) ? String(match[4]).trim() : "";
+                const colO = (match[14] !== undefined && match[14] !== null) ? String(match[14]).trim() : "";
 
-                tempQrDiv.innerHTML = "";
-                new QRCode(tempQrDiv, {
-                    text: `${i}-${document.getElementById('pno').value}-${document.getElementById('sebango').value}`,
-                    width: 90 * scale,
-                    height: 90 * scale,
-                    correctLevel: QRCode.CorrectLevel.M
-                });
+                let prevProc = prevProcVal;
+                let nextProc = nextProcVal;
+                let areaColor = mapAreaColor(colK);
+                
+                if (colK_Client === "WD") {
+                    areaColor = "#FFC0CB"; // WD prioriza color rosa base en auto-carga
+                    prevProc = nextProcVal; // Col E
+                    nextProc = colO;        // Col O
+                }
 
-                await new Promise(resolve => setTimeout(resolve, 5));
+                const sideColor = mapSideColor(getVal("LADO"));
+                const textColor = sideColor === "#333333" ? "white" : "black";
+                const pno = getVal("NP");
+                const clientId = getVal("IDC");
+                const tekin = getVal("TEKIN");
+                const pack = getVal("EMP");
+                const qpc = getVal("QPC");
+                const client = getVal("CF");
 
-                const qrCanvas = tempQrDiv.querySelector('canvas');
-                const qrImg = tempQrDiv.querySelector('img');
+                let imgUrl = getVal("IMG");
+                if (imgUrl && imgUrl.trim() !== "") {
+                    imgUrl = await processDriveImage(imgUrl.trim());
+                }
 
-                if (qrCanvas && qrCanvas.width > 0) {
-                    ctx.drawImage(qrCanvas, qX, qY, 90 * scale, 90 * scale);
-                } else if (qrImg) {
-                    if (!qrImg.complete) {
-                        await new Promise(resolve => { qrImg.onload = resolve; qrImg.onerror = resolve; });
+                // Inyectamos temporalmente los colores y HTML para capturar con html2canvas
+                document.documentElement.style.setProperty('--area-color', areaColor);
+                document.documentElement.style.setProperty('--side-color', sideColor);
+
+                box.innerHTML = `
+                    <div class="header-row">
+                        <div class="header-cell proc-highlight"><span>Proceso Previo</span><div>${prevProc}</div></div>
+                        <div class="arrow-cell">➔</div>
+                        <div class="header-cell proc-highlight"><span>Siguiente Proceso</span><div>${nextProc}</div></div>
+                        <div class="header-cell"><span>Empaque</span><div>${pack}</div></div>
+                        <div class="header-cell"><span>QPC</span><div>${qpc}</div></div>
+                        <div class="header-cell"><span>Cliente</span><div>${client}</div></div>
+                    </div>
+                    <div class="body-row">
+                        <div class="left-panel" style="color: ${textColor}">
+                            <div class="side-field">
+                                <div class="vert-title"><span>KTMEX</span></div>
+                                <div class="val-text"><span class="val-sebango">${task.sebango}</span></div>
+                            </div>
+                            <div class="side-field">
+                                <div class="vert-title"><span># PARTE</span></div>
+                                <div class="val-text"><span class="val-pno">${pno}</span></div>
+                            </div>
+                            <div class="side-field">
+                                <div class="vert-title"><span>ID CLIENTE</span></div>
+                                <div class="val-text"><span class="val-cliente">${clientId}</span></div>
+                            </div>
+                        </div>
+                        <div class="right-panel">
+                            <div class="img-area">
+                                ${imgUrl ? `<img src="${imgUrl}" crossorigin="anonymous" id="preview-img-obj">` : '<span>Sin Imagen</span>'}
+                                <div class="tekin-label">${tekin}</div>
+                            </div>
+                            <div class="qr-area">
+                                <div style="font-size: 10px; font-weight: bold; margin-bottom: 2px;">SECUENCIA</div>
+                                <div class="seq-box" id="seq-val-target">1</div>
+                                <div id="qr-target-element"></div>
+                                <div style="position: absolute; bottom: 2px; right: 5px; font-size: 9px; font-weight: bold;">${dateStr}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                const imgObj = document.getElementById('preview-img-obj');
+                if (imgObj && !imgObj.complete) {
+                    await new Promise(res => { imgObj.onload = res; imgObj.onerror = res; });
+                }
+
+                const qrContainer = document.getElementById('qr-target-element');
+                qrContainer.innerHTML = "";
+                new QRCode(qrContainer, { text: `TEMP`, width: 90, height: 90, correctLevel: QRCode.CorrectLevel.M });
+                
+                await new Promise(r => setTimeout(r, 50)); // Render UI tick
+
+                const scale = 2;
+                const baseCanvas = await html2canvas(box, { scale: scale, useCORS: true, logging: false, animated: false });
+
+                frameCanvas.width = baseCanvas.width;
+                frameCanvas.height = baseCanvas.height;
+                const ctx = frameCanvas.getContext('2d');
+
+                const seqEl = document.getElementById('seq-val-target');
+                const qrEl = document.getElementById('qr-target-element');
+                const boxRect = box.getBoundingClientRect();
+                const seqRect = seqEl.getBoundingClientRect();
+                const qrRect = qrEl.getBoundingClientRect();
+
+                const sX = (seqRect.left - boxRect.left) * scale;
+                const sY = (seqRect.top - boxRect.top) * scale;
+                const sW = seqRect.width * scale;
+                const sH = seqRect.height * scale;
+
+                const qX = (qrRect.left - boxRect.left) * scale;
+                const qY = (qrRect.top - boxRect.top) * scale;
+
+                // Generamos las N secuencias para este Sebango
+                for (let i = 1; i <= task.qty; i++) {
+                    ctx.drawImage(baseCanvas, 0, 0);
+
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(qX, qY, 90 * scale, 90 * scale);
+
+                    ctx.fillStyle = '#EEEEEE';
+                    ctx.fillRect(sX, sY, sW, sH);
+                    ctx.strokeStyle = '#000000';
+                    ctx.lineWidth = 1 * scale;
+                    ctx.strokeRect(sX, sY, sW, sH);
+
+                    ctx.fillStyle = '#000000';
+                    ctx.font = `bold ${20 * scale}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(i.toString(), sX + (sW / 2), sY + (sH / 2));
+
+                    tempQrDiv.innerHTML = "";
+                    new QRCode(tempQrDiv, {
+                        text: `${i}-${pno}-${task.sebango}`,
+                        width: 90 * scale, height: 90 * scale, correctLevel: QRCode.CorrectLevel.M
+                    });
+
+                    await new Promise(resolve => setTimeout(resolve, 5));
+
+                    const qrCanvas = tempQrDiv.querySelector('canvas');
+                    if (qrCanvas && qrCanvas.width > 0) ctx.drawImage(qrCanvas, qX, qY, 90 * scale, 90 * scale);
+
+                    if (countInPage === 3) {
+                        pdf.addPage();
+                        countInPage = 0;
                     }
-                    ctx.drawImage(qrImg, qX, qY, 90 * scale, 90 * scale);
-                }
 
-                if (!isFirstLabel && countInPage === 3) {
-                    pdf.addPage();
-                    countInPage = 0;
-                }
-                isFirstLabel = false;
-
-                const imgData = frameCanvas.toDataURL('image/jpeg', 0.92);
-                const yPos = yOffset + (countInPage * (labelHeight + spacing));
-
-                pdf.addImage(imgData, 'JPEG', xPos, yPos, labelWidth, labelHeight);
-                countInPage++;
-                
-                if (i % 10 === 0) {
-                    progressEl.innerText = `[${t+1}/${tasks.length}] Etiqueta ${i} de ${task.qty} (${task.sebango})...`;
+                    const imgData = frameCanvas.toDataURL('image/jpeg', 0.92);
+                    pdf.addImage(imgData, 'JPEG', 0, countInPage * labelHeight, labelWidth, labelHeight);
+                    countInPage++;
                 }
             }
+
             tempQrDiv.remove();
+            
+            // Para limpiar, volvemos a poner en pantalla lo del input principal original
+            const mainSebango = document.getElementById('sebango').value;
+            if(mainSebango) fetchDatabaseBySebango(mainSebango);
+
+            progress.innerText = "💾 Guardando Archivo PDF Masivo...";
+            pdf.save(`KTMEX_Lote_Masivo.pdf`);
+            
+            btn.disabled = false;
+            progress.innerText = "✅ PDF Masivo generado exitosamente";
+            setTimeout(() => progress.innerText = "", 5000);
+
+        } catch (err) {
+            console.error(err);
+            progress.innerText = "❌ Error: " + err.message;
+            btn.disabled = false;
         }
-
-        progressEl.innerText = "💾 Guardando archivo PDF Masivo...";
-        pdf.save(`KTMEX_Masivo_${new Date().getTime()}.pdf`);
-
-        btnMassivePdf.disabled = false;
-        progressEl.innerText = "✅ PDF Masivo generado exitosamente";
-        
-        // Limpiamos tu interfaz principal dejándola lista para uso normal
-        document.getElementById('sebango').value = "";
-        
-        setTimeout(() => { 
-            progressEl.innerText = ""; 
-            closeMassiveModal(); 
-        }, 3000);
     }
 </script>
 
