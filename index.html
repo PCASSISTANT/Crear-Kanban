@@ -16,8 +16,14 @@
         .preview-container { flex: 1.5; display: flex; flex-direction: column; align-items: center; }
         
         .header-title-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .header-buttons { display: flex; gap: 10px; }
+        
         .btn-admin-toggle { background: #8e44ad; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 11px; flex: initial; }
         .btn-admin-toggle:hover { background: #9b59b6; }
+        
+        .btn-mass-toggle { background: #f39c12; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 11px; flex: initial; }
+        .btn-mass-toggle:hover { background: #e67e22; }
+
         .admin-badge { font-size: 11px; background: #27ae60; color: white; padding: 2px 6px; border-radius: 3px; display: none; margin-left: 8px; vertical-align: middle; }
 
         .grid-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -119,37 +125,14 @@
             background: #25252b; 
             border-radius: 8px; 
             box-shadow: 0 4px 15px rgba(0,0,0,0.5); 
+            display: none;
+            padding: 20px;
         }
-        .mass-print-panel summary { 
-            padding: 15px 20px; 
-            font-size: 1.1rem; 
-            font-weight: bold; 
-            color: #3498db; 
-            cursor: pointer; 
-            list-style: none; 
-            user-select: none; 
-            outline: none; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
+        
+        .mass-print-panel.active {
+            display: block;
         }
-        .mass-print-panel summary::-webkit-details-marker { 
-            display: none; 
-        }
-        .mass-print-panel summary::after { 
-            content: '▼'; 
-            font-size: 0.9rem; 
-            transition: transform 0.3s ease; 
-        }
-        .mass-print-panel[open] summary::after { 
-            transform: rotate(180deg); 
-        }
-        .mass-print-content { 
-            padding: 0 20px 20px 20px; 
-            border-top: 1px solid #333; 
-            margin-top: 5px; 
-            padding-top: 15px; 
-        }
+
         .mass-row { display: flex; gap: 10px; margin-bottom: 10px; }
         .mass-row input { flex: 1; border: 2px solid #3498db; text-transform: uppercase; font-weight: bold; font-size: 16px;}
         .mass-row .mass-qty { flex: 0.3; border: 1px solid #444; font-size: 16px; text-align: center;}
@@ -167,7 +150,10 @@
                 KTMEX | Label System 
                 <span id="admin-badge" class="admin-badge">ADMIN</span>
             </h2>
-            <button class="btn-admin-toggle" onclick="toggleAdminMode()">Modo Admin 🔒</button>
+            <div class="header-buttons">
+                <button class="btn-mass-toggle" onclick="toggleMassPrint()">Masivo 📄</button>
+                <button class="btn-admin-toggle" onclick="toggleAdminMode()">Modo Admin 🔒</button>
+            </div>
         </div>
         
         <div class="grid-inputs">
@@ -220,24 +206,22 @@
     </div>
 </div>
 
-<details class="mass-print-panel">
-    <summary>📄 Desplegar Impresión Masiva de Kanban</summary>
-    <div class="mass-print-content">
-        <p style="font-size: 12px; color: #aaa; margin-bottom: 15px; margin-top: 0;">Ingresa múltiples Sebangos y la cantidad a imprimir de cada uno. Se generará un solo PDF continuo con todas las secuencias.</p>
-        <div id="mass-input-container">
-            <div class="mass-row">
-                <input type="text" placeholder="Escribir Sebango" class="mass-sebango">
-                <input type="number" placeholder="Cantidad de Etiquetas" class="mass-qty" min="1" value="1">
-                <button class="btn-remove-row" onclick="this.parentElement.remove()">X</button>
-            </div>
+<div class="mass-print-panel" id="massPrintPanel">
+    <h3 style="color:#3498db; margin-top: 0;">Impresión Masiva de Kanban</h3>
+    <p style="font-size: 12px; color: #aaa; margin-bottom: 15px;">Ingresa múltiples Sebangos y la cantidad a imprimir de cada uno. Se generará un solo PDF continuo con todas las secuencias.</p>
+    <div id="mass-input-container">
+        <div class="mass-row">
+            <input type="text" placeholder="Escribir Sebango" class="mass-sebango">
+            <input type="number" placeholder="Cantidad de Etiquetas" class="mass-qty" min="1" value="1">
+            <button class="btn-remove-row" onclick="this.parentElement.remove()">X</button>
         </div>
-        <div class="btn-group" style="margin-top: 15px;">
-            <button type="button" onclick="addMassRow()" style="background: #27ae60; color: white;">+ Agregar Fila</button>
-            <button type="button" id="btn-mass-pdf" class="btn-pdf" onclick="generateMassPDF()">Generar PDF Masivo</button>
-        </div>
-        <div id="mass-progress"></div>
     </div>
-</details>
+    <div class="btn-group" style="margin-top: 15px;">
+        <button type="button" onclick="addMassRow()" style="background: #27ae60; color: white;">+ Agregar Fila</button>
+        <button type="button" id="btn-mass-pdf" class="btn-pdf" onclick="generateMassPDF()">Generar PDF Masivo</button>
+    </div>
+    <div id="mass-progress"></div>
+</div>
 
 <script>
     let productImg = "";
@@ -245,6 +229,7 @@
     const SHEET_ID = "1GkWY2r-kz_wfv_-LPEeFEdKe1qNILTV86pln2xg_rIM";
     const ADMIN_PASS = "pcpc2026ktmex";
     let isAdmin = false;
+    let isMassPrintOpen = false;
 
     function toggleAdminMode() {
         if (!isAdmin) {
@@ -260,6 +245,23 @@
             isAdmin = false;
             enableAdminFields(false);
             alert("🔒 Modo Administrador desactivado.");
+        }
+    }
+
+    function toggleMassPrint() {
+        const panel = document.getElementById('massPrintPanel');
+        const btn = document.querySelector('.btn-mass-toggle');
+        
+        isMassPrintOpen = !isMassPrintOpen;
+        
+        if (isMassPrintOpen) {
+            panel.classList.add('active');
+            btn.innerText = "Cerrar Masivo ❌";
+            btn.style.background = "#e74c3c";
+        } else {
+            panel.classList.remove('active');
+            btn.innerText = "Masivo 📄";
+            btn.style.background = "#f39c12";
         }
     }
 
@@ -457,7 +459,6 @@
                     statusEl.innerText = `⚠️ '${targetSebango}' No encontrado. Para,Llama y Espera!`;
                 }
             } catch (err) {
-                console.error("Error al procesar:", err);
                 statusEl.style.color = "#e74c3c";
                 statusEl.innerText = `❌ ${err.message}`;
             }
