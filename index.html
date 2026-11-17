@@ -175,7 +175,7 @@
                 <label>Lado (Side Color)</label>
                 <select id="side" disabled onchange="updateColors()">
                     <option value="#27ae60">RH (Verde)</option>
-                    <option value="#f8bb15">LH (Amarillo)</option>
+                    <option value="#FFFF00">LH (Amarillo)</option>
                     <option value="#333333">NA (Negro)</option>
                 </select>
             </div>
@@ -311,7 +311,7 @@
     function mapSideColor(ladoVal) {
         const val = String(ladoVal).trim().toUpperCase();
         if (val === "RH") return "#27ae60"; 
-        if (val === "LH") return "#f8bb15"; 
+        if (val === "LH") return "#FFFF00"; 
         if (val === "NA") return "#333333"; 
         return "#27ae60";
     }
