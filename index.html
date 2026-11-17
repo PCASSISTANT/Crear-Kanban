@@ -105,4 +105,895 @@
         
         .val-sebango { font-size: 65px; letter-spacing: -1px; } 
         .val-pno { font-size: 40px; letter-spacing: -0.5px; }    
-        .val-cliente { font-size: 55
+        .val-cliente { font-size: 55px; letter-spacing: -1px; }  
+
+        .right-panel { width: 62%; display: flex; }
+        .img-area { flex: 1; padding: 8px; display: flex; align-items: center; justify-content: center; position: relative; border-right: 1px solid black; }
+        .img-area img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        
+        .tekin-label { position: absolute; bottom: 4px; right: 4px; border: 1px solid black; background: white; padding: 1px 8px; font-weight: bold; font-size: 16px; }
+        
+        .qr-area { width: 115px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 5px; position: relative; }
+        .seq-box { font-weight: bold; font-size: 20px; border: 1px solid black; width: 85px; text-align: center; background: #eee; margin-bottom: 8px; padding: 2px 0; }
+        
+        .status-cloud { font-size: 11px; margin-left: 8px; font-weight: bold; }
+        #pdf-progress { margin-top: 10px; font-weight: bold; color: #f39c12; font-size: 13px; text-align: center; }
+        
+        .mass-print-panel { 
+            max-width: 1300px; 
+            margin: 20px auto 0 auto; 
+            background: #25252b; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5); 
+            display: none;
+            padding: 20px;
+        }
+        
+        .mass-print-panel.active {
+            display: block;
+        }
+
+        .mass-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        .mass-row input { flex: 1; border: 2px solid #3498db; text-transform: uppercase; font-weight: bold; font-size: 16px;}
+        .mass-row .mass-qty { flex: 0.3; border: 1px solid #444; font-size: 16px; text-align: center;}
+        .btn-remove-row { flex: 0.1; background: #e74c3c; color: white; padding: 0; font-size: 16px; border-radius: 4px; border: none; cursor: pointer;}
+        .btn-remove-row:hover { background: #c0392b; }
+        #mass-progress { margin-top: 10px; font-weight: bold; color: #f39c12; font-size: 14px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="admin-panel">
+    <div class="form-container">
+        <div class="header-title-container">
+            <h2 style="margin:0; color:#3498db">
+                KTMEX | Label System 
+                <span id="admin-badge" class="admin-badge">ADMIN</span>
+            </h2>
+            <div class="header-buttons">
+                <button class="btn-mass-toggle" onclick="toggleMassPrint()">Masivo 📄</button>
+                <button class="btn-admin-toggle" onclick="toggleAdminMode()">Modo Admin 🔒</button>
+            </div>
+        </div>
+        
+        <div class="grid-inputs">
+            <div class="form-group full-width">
+                <label>Sebango <span id="cloud-status" class="status-cloud"></span></label>
+                <input type="text" id="sebango" style="border: 2px solid #3498db; font-weight: bold; font-size: 16px; text-transform: uppercase;" placeholder="Escribir Sebango">
+            </div>
+
+            <div class="form-group full-width">
+                <label>Área de Kanban</label>
+                <select id="area" disabled onchange="updateColors()">
+                    <option value="#27ae60">Producto Terminado (Verde)</option>
+                    <option value="#FFFF00">Subensamble (Amarillo)</option>
+                    <option value="#FFC0CB">Estampado (Rosa)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Lado (Side Color)</label>
+                <select id="side" disabled onchange="updateColors()">
+                    <option value="#27ae60">RH (Verde)</option>
+                    <option value="#f8bb15">LH (Amarillo)</option>
+                    <option value="#333333">NA (Negro)</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Tekin</label><input type="text" id="tekin" readonly></div>
+            
+            <div class="form-group"><label>Secuencia Inicio</label><input type="number" id="seqStart" value="1"></div>
+            <div class="form-group"><label>Secuencia Fin</label><input type="number" id="seqEnd" value="300"></div>
+            
+            <div class="form-group"><label>Proceso Previo</label><input type="text" id="prevProc" readonly></div>
+            <div class="form-group"><label>Siguiente Proceso</label><input type="text" id="nextProc" readonly></div>
+            <div class="form-group"><label>Empaque</label><input type="text" id="pack" readonly></div>
+            <div class="form-group"><label>QPC (Cantidad)</label><input type="text" id="qpc" readonly></div>
+            <div class="form-group"><label>ID Cliente</label><input type="text" id="clientId" readonly></div>
+            <div class="form-group full-width"><label># de Parte</label><input type="text" id="pno" readonly></div>
+            <div class="form-group full-width"><label>Cliente Final</label><input type="text" id="client" readonly></div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn-preview" onclick="renderPreview(document.getElementById('seqStart').value)">Vista Previa</button>
+            <button class="btn-pdf" id="btn-pdf" onclick="generateExactPDF()">Generar PDF</button>
+        </div>
+        <div id="pdf-progress"></div>
+    </div>
+
+    <div class="preview-container">
+        <h3 style="color:#999">VISTA PREVIA</h3>
+        <div id="kanban-box" class="kanban-render"></div>
+    </div>
+</div>
+
+<div class="mass-print-panel" id="massPrintPanel">
+    <h3 style="color:#3498db; margin-top: 0;">Impresión Masiva de Kanban</h3>
+    <p style="font-size: 12px; color: #aaa; margin-bottom: 15px;">Ingresa múltiples Sebangos y la cantidad a imprimir de cada uno. Se generará un solo PDF continuo con todas las secuencias.</p>
+    <div id="mass-input-container">
+        <div class="mass-row">
+            <input type="text" placeholder="Escribir Sebango" class="mass-sebango">
+            <input type="number" placeholder="Cantidad de Etiquetas" class="mass-qty" min="1" value="1">
+            <button class="btn-remove-row" onclick="this.parentElement.remove()">X</button>
+        </div>
+    </div>
+    <div class="btn-group" style="margin-top: 15px;">
+        <button type="button" onclick="addMassRow()" style="background: #27ae60; color: white;">+ Agregar Fila</button>
+        <button type="button" id="btn-mass-pdf" class="btn-pdf" onclick="generateMassPDF()">Generar PDF Masivo</button>
+    </div>
+    <div id="mass-progress"></div>
+</div>
+
+<script>
+    let productImg = "";
+    let currentRowData = null; 
+    const SHEET_ID = "1GkWY2r-kz_wfv_-LPEeFEdKe1qNILTV86pln2xg_rIM";
+    const ADMIN_PASS = "pcpc2026ktmex";
+    let isAdmin = false;
+    let isMassPrintOpen = false;
+
+    function toggleAdminMode() {
+        if (!isAdmin) {
+            const pass = prompt("Ingrese la contraseña de Administrador:");
+            if (pass === ADMIN_PASS) {
+                isAdmin = true;
+                enableAdminFields(true);
+                alert("🔓 Modo Administrador activado. Todos los campos están desbloqueados.");
+            } else if (pass !== null) {
+                alert("❌ Contraseña incorrecta.");
+            }
+        } else {
+            isAdmin = false;
+            enableAdminFields(false);
+            alert("🔒 Modo Administrador desactivado.");
+        }
+    }
+
+    function toggleMassPrint() {
+        const panel = document.getElementById('massPrintPanel');
+        const btn = document.querySelector('.btn-mass-toggle');
+        
+        isMassPrintOpen = !isMassPrintOpen;
+        
+        if (isMassPrintOpen) {
+            panel.classList.add('active');
+            btn.innerText = "Cerrar Masivo ❌";
+            btn.style.background = "#e74c3c";
+        } else {
+            panel.classList.remove('active');
+            btn.innerText = "Masivo 📄";
+            btn.style.background = "#f39c12";
+        }
+    }
+
+    function enableAdminFields(enable) {
+        const fieldsToToggle = ['area', 'side', 'tekin', 'prevProc', 'nextProc', 'pack', 'qpc', 'clientId', 'pno', 'client'];
+        
+        fieldsToToggle.forEach(id => {
+            const el = document.getElementById(id);
+            if (el.tagName === "SELECT") {
+                if (id === 'area') {
+                    const colK = (currentRowData && currentRowData[10] !== undefined && currentRowData[10] !== null) ? String(currentRowData[10]).trim().toUpperCase() : "";
+                    if (colK === "WD") {
+                        el.disabled = false;
+                    } else {
+                        el.disabled = !enable;
+                    }
+                } else {
+                    el.disabled = !enable;
+                }
+            } else {
+                el.readOnly = !enable;
+            }
+        });
+
+        const badge = document.getElementById('admin-badge');
+        const btnToggle = document.querySelector('.btn-admin-toggle');
+
+        if (enable) {
+            badge.style.display = "inline-block";
+            btnToggle.innerText = "Salir Admin 🔓";
+            btnToggle.style.background = "#27ae60";
+        } else {
+            badge.style.display = "none";
+            btnToggle.innerText = "Modo Admin 🔒";
+            btnToggle.style.background = "#8e44ad";
+        }
+    }
+
+    function mapAreaColor(akanVal) {
+        const val = String(akanVal).trim();
+        if (val === "3") return "#27ae60"; 
+        if (val === "2") return "#FFFF00"; 
+        if (val === "1") return "#FFC0CB"; 
+        return "#27ae60";
+    }
+
+    function mapSideColor(ladoVal) {
+        const val = String(ladoVal).trim().toUpperCase();
+        if (val === "RH") return "#27ae60"; 
+        if (val === "LH") return "#f8bb15"; 
+        if (val === "NA") return "#333333"; 
+        return "#27ae60";
+    }
+
+    async function processDriveImage(rawUrl) {
+        if (!rawUrl) return "";
+        if (rawUrl.startsWith("data:image")) return rawUrl;
+
+        let fileId = "";
+        const matchD = rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        const matchId = rawUrl.match(/id=([a-zA-Z0-9_-]+)/);
+
+        if (matchD && matchD[1]) fileId = matchD[1];
+        else if (matchId && matchId[1]) fileId = matchId[1];
+        else if (rawUrl.length > 20 && !rawUrl.includes("http")) fileId = rawUrl.trim();
+
+        if (fileId) {
+            return `https://lh3.googleusercontent.com/d/${fileId}=s1000`;
+        }
+        return rawUrl;
+    }
+
+    function applyProcessRouting() {
+        if (!currentRowData || currentRowData.length === 0) return;
+        
+        const colK = (currentRowData[10] !== undefined && currentRowData[10] !== null) ? String(currentRowData[10]).trim().toUpperCase() : "";
+        const colD = (currentRowData[3] !== undefined && currentRowData[3] !== null) ? String(currentRowData[3]).trim() : "";
+        const colE = (currentRowData[4] !== undefined && currentRowData[4] !== null) ? String(currentRowData[4]).trim() : "";
+        const colO = (currentRowData[14] !== undefined && currentRowData[14] !== null) ? String(currentRowData[14]).trim() : "";
+
+        const areaVal = document.getElementById('area').value;
+
+        if (colK === "WD" && areaVal === "#FFFF00") { 
+            document.getElementById('prevProc').value = colE;
+            document.getElementById('nextProc').value = colO;
+        } else {
+            document.getElementById('prevProc').value = colD;
+            document.getElementById('nextProc').value = colE;
+        }
+    }
+
+    function fetchDatabaseBySebango(targetSebango) {
+        const statusEl = document.getElementById('cloud-status');
+        if (!targetSebango) return;
+
+        statusEl.style.color = "#3498db";
+        statusEl.innerText = "⏳ Consultando...";
+
+        const oldScript = document.getElementById('gviz-jsonp-script');
+        if (oldScript) oldScript.remove();
+
+        window.handleGvizResponse = async function(response) {
+            try {
+                if (!response || !response.table) throw new Error("Respuesta inválida de Google Sheets");
+
+                const table = response.table;
+                let headers = table.cols.map(c => (c.label || c.id || "").toString().trim().toUpperCase());
+                
+                let dataMatrix = table.rows.map(r => 
+                    r.c ? r.c.map(cell => (cell && cell.v !== null && cell.v !== undefined) ? String(cell.v).trim() : "") : []
+                );
+
+                let sebangoColIdx = headers.findIndex(h => h.includes("SEBANGO"));
+                
+                if (sebangoColIdx === -1) {
+                    for (let i = 0; i < dataMatrix.length; i++) {
+                        const rowUpper = dataMatrix[i].map(x => x.toUpperCase());
+                        const idx = rowUpper.findIndex(x => x.includes("SEBANGO"));
+                        if (idx !== -1) {
+                            headers = rowUpper;
+                            sebangoColIdx = idx;
+                            dataMatrix = dataMatrix.slice(i + 1);
+                            break;
+                        }
+                    }
+                }
+
+                if (sebangoColIdx === -1) throw new Error(`Columna 'SEBANGO' no encontrada.`);
+
+                const getColIndex = (colName) => {
+                    const target = colName.toUpperCase();
+                    return headers.findIndex(h => h === target || h.trim() === target || h.includes(target));
+                };
+
+                const match = dataMatrix.find(r => 
+                    r[sebangoColIdx] && String(r[sebangoColIdx]).trim().toUpperCase() === targetSebango.trim().toUpperCase()
+                );
+
+                if (match) {
+                    currentRowData = match;
+                    const colK_Client = (currentRowData[10] !== undefined && currentRowData[10] !== null) ? String(currentRowData[10]).trim().toUpperCase() : "";
+
+                    const getVal = (colName) => {
+                        const idx = getColIndex(colName);
+                        return (idx !== -1 && match[idx] !== undefined) ? String(match[idx]) : "";
+                    };
+
+                    const areaSelect = document.getElementById('area');
+
+                    if (colK_Client === "WD") {
+                        areaSelect.innerHTML = `
+                            <option value="#FFC0CB">Estampado (Rosa)</option>
+                            <option value="#FFFF00">Subensamble (Amarillo)</option>
+                        `;
+                        areaSelect.disabled = false;
+                    } else {
+                        areaSelect.innerHTML = `
+                            <option value="#27ae60">Producto Terminado (Verde)</option>
+                            <option value="#FFFF00">Subensamble (Amarillo)</option>
+                            <option value="#FFC0CB">Estampado (Rosa)</option>
+                        `;
+                        areaSelect.disabled = !isAdmin;
+                    }
+
+                    let initialArea = mapAreaColor(getVal("AKAN"));
+                    if (colK_Client === "WD" && initialArea === "#27ae60") {
+                        initialArea = "#FFC0CB"; 
+                    }
+                    areaSelect.value = initialArea;
+
+                    document.getElementById('side').value = mapSideColor(getVal("LADO"));
+                    document.getElementById('tekin').value = getVal("TEKIN");
+                    
+                    applyProcessRouting();
+
+                    document.getElementById('pack').value = getVal("EMP");
+                    document.getElementById('qpc').value = getVal("QPC");
+                    document.getElementById('clientId').value = getVal("IDC");
+                    document.getElementById('pno').value = getVal("NP");
+                    document.getElementById('client').value = getVal("CF");
+
+                    const imgRawVal = getVal("IMG");
+                    if (imgRawVal && imgRawVal.trim() !== "") {
+                        productImg = await processDriveImage(imgRawVal.trim());
+                    } else {
+                        productImg = "";
+                    }
+
+                    statusEl.style.color = "#2ecc71";
+                    statusEl.innerText = "Datos Cargados";
+                    updateColors();
+                } else {
+                    currentRowData = null;
+                    statusEl.style.color = "#e67e22";
+                    statusEl.innerText = `⚠️ '${targetSebango}' No encontrado. Para,Llama y Espera!`;
+                }
+            } catch (err) {
+                statusEl.style.color = "#e74c3c";
+                statusEl.innerText = `❌ ${err.message}`;
+            }
+        };
+
+        const script = document.createElement('script');
+        script.id = 'gviz-jsonp-script';
+        script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=responseHandler:handleGvizResponse`;
+        document.body.appendChild(script);
+    }
+
+    const sebangoInput = document.getElementById('sebango');
+    sebangoInput.addEventListener('input', (e) => {
+        const start = e.target.selectionStart;
+        const end = e.target.selectionEnd;
+        e.target.value = e.target.value.toUpperCase();
+        e.target.setSelectionRange(start, end);
+    });
+    sebangoInput.addEventListener('change', (e) => fetchDatabaseBySebango(e.target.value));
+    sebangoInput.addEventListener('blur', (e) => fetchDatabaseBySebango(e.target.value));
+
+    const editableInputs = ['tekin', 'prevProc', 'nextProc', 'pack', 'qpc', 'clientId', 'pno', 'client'];
+    editableInputs.forEach(id => {
+        const el = document.getElementById(id);
+        el.addEventListener('input', () => renderPreview(document.getElementById('seqStart').value));
+    });
+
+    function updateColors() {
+        applyProcessRouting(); 
+        document.documentElement.style.setProperty('--area-color', document.getElementById('area').value);
+        document.documentElement.style.setProperty('--side-color', document.getElementById('side').value);
+        renderPreview(document.getElementById('seqStart').value);
+    }
+
+    function renderPreview(currentSeq) {
+        const box = document.getElementById('kanban-box');
+        const sideVal = document.getElementById('side').value;
+        const textColor = sideVal === "#333333" ? "white" : "black";
+        
+        const today = new Date();
+        const dd = String(today.getDate()).padStart(2, '0');
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const yyyy = today.getFullYear();
+        const dateStr = `${dd}/${mm}/${yyyy}`;
+
+        box.innerHTML = `
+            <div class="header-row">
+                <div class="header-cell proc-highlight"><span>Proceso Previo</span><div>${document.getElementById('prevProc').value}</div></div>
+                <div class="arrow-cell">➔</div>
+                <div class="header-cell proc-highlight"><span>Siguiente Proceso</span><div>${document.getElementById('nextProc').value}</div></div>
+                <div class="header-cell"><span>Empaque</span><div>${document.getElementById('pack').value}</div></div>
+                <div class="header-cell"><span>QPC</span><div>${document.getElementById('qpc').value}</div></div>
+                <div class="header-cell"><span>Cliente</span><div>${document.getElementById('client').value}</div></div>
+            </div>
+            <div class="body-row">
+                <div class="left-panel" style="color: ${textColor}">
+                    <div class="side-field">
+                        <div class="vert-title"><span>KTMEX</span></div>
+                        <div class="val-text"><span class="val-sebango">${document.getElementById('sebango').value}</span></div>
+                    </div>
+                    <div class="side-field">
+                        <div class="vert-title"><span># PARTE</span></div>
+                        <div class="val-text"><span class="val-pno">${document.getElementById('pno').value}</span></div>
+                    </div>
+                    <div class="side-field">
+                        <div class="vert-title"><span>ID CLIENTE</span></div>
+                        <div class="val-text"><span class="val-cliente">${document.getElementById('clientId').value}</span></div>
+                    </div>
+                </div>
+                <div class="right-panel">
+                    <div class="img-area">
+                        ${productImg ? `<img src="${productImg}" crossorigin="anonymous" id="preview-img-obj">` : '<span>Sin Imagen</span>'}
+                        <div class="tekin-label">${document.getElementById('tekin').value}</div>
+                    </div>
+                    <div class="qr-area">
+                        <div style="font-size: 10px; font-weight: bold; margin-bottom: 2px;">SECUENCIA</div>
+                        <div class="seq-box" id="seq-val-target">${currentSeq}</div>
+                        <div id="qr-target-element"></div>
+                        <div style="position: absolute; bottom: 2px; right: 5px; font-size: 9px; font-weight: bold;">${dateStr}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const qrContainer = document.getElementById('qr-target-element');
+        qrContainer.innerHTML = "";
+        new QRCode(qrContainer, {
+            text: `${currentSeq}-${document.getElementById('pno').value}-${document.getElementById('sebango').value}`,
+            width: 90,
+            height: 90,
+            correctLevel: QRCode.CorrectLevel.M
+        });
+    }
+
+    async function generateExactPDF() {
+        const btnPdf = document.getElementById('btn-pdf');
+        const progressEl = document.getElementById('pdf-progress');
+        const start = parseInt(document.getElementById('seqStart').value);
+        const end = parseInt(document.getElementById('seqEnd').value);
+
+        if (isNaN(start) || isNaN(end) || start > end) {
+            alert("Rango de secuencia no válido.");
+            return;
+        }
+
+        btnPdf.disabled = true;
+        progressEl.innerText = "⚡ Generando plantilla base en alta resolución...";
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'letter');
+        const kanbanBox = document.getElementById('kanban-box');
+
+        renderPreview(start);
+
+        const imgObj = document.getElementById('preview-img-obj');
+        if (imgObj && !imgObj.complete) {
+            await new Promise(res => imgObj.onload = res);
+        }
+
+        const seqEl = document.getElementById('seq-val-target');
+        const qrEl = document.getElementById('qr-target-element');
+        
+        const boxRect = kanbanBox.getBoundingClientRect();
+        const seqRect = seqEl.getBoundingClientRect();
+        const qrRect = qrEl.getBoundingClientRect();
+
+        const scale = 2;
+        
+        const sX = (seqRect.left - boxRect.left) * scale;
+        const sY = (seqRect.top - boxRect.top) * scale;
+        const sW = seqRect.width * scale;
+        const sH = seqRect.height * scale;
+
+        const qX = (qrRect.left - boxRect.left) * scale;
+        const qY = (qrRect.top - boxRect.top) * scale;
+
+        const baseCanvas = await html2canvas(kanbanBox, { 
+            scale: scale, 
+            useCORS: true, 
+            logging: false, 
+            animated: false 
+        });
+
+        const labelWidth = 205.9; 
+        const labelHeight = 88;
+        
+        const xPos = 0; 
+        const yOffset = 0; 
+        const spacing = 0; 
+
+        let countInPage = 0;
+        const total = (end - start) + 1;
+
+        const frameCanvas = document.createElement('canvas');
+        frameCanvas.width = baseCanvas.width;
+        frameCanvas.height = baseCanvas.height;
+        const ctx = frameCanvas.getContext('2d');
+
+        const tempQrDiv = document.createElement('div');
+        tempQrDiv.style.position = 'absolute';
+        tempQrDiv.style.left = '-9999px';
+        document.body.appendChild(tempQrDiv);
+
+        for (let i = start; i <= end; i++) {
+            const currentIdx = (i - start) + 1;
+
+            ctx.drawImage(baseCanvas, 0, 0);
+
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(qX, qY, 90 * scale, 90 * scale);
+
+            ctx.fillStyle = '#EEEEEE';
+            ctx.fillRect(sX, sY, sW, sH);
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 1 * scale;
+            ctx.strokeRect(sX, sY, sW, sH);
+
+            ctx.fillStyle = '#000000';
+            ctx.font = `bold ${20 * scale}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(i.toString(), sX + (sW / 2), sY + (sH / 2));
+
+            tempQrDiv.innerHTML = "";
+            new QRCode(tempQrDiv, {
+                text: `${i}-${document.getElementById('pno').value}-${document.getElementById('sebango').value}`,
+                width: 90 * scale,
+                height: 90 * scale,
+                correctLevel: QRCode.CorrectLevel.M
+            });
+
+            await new Promise(resolve => setTimeout(resolve, 5));
+
+            const qrCanvas = tempQrDiv.querySelector('canvas');
+            const qrImg = tempQrDiv.querySelector('img');
+
+            if (qrCanvas && qrCanvas.width > 0) {
+                ctx.drawImage(qrCanvas, qX, qY, 90 * scale, 90 * scale);
+            } else if (qrImg) {
+                if (!qrImg.complete) {
+                    await new Promise(resolve => {
+                        qrImg.onload = resolve;
+                        qrImg.onerror = resolve;
+                    });
+                }
+                ctx.drawImage(qrImg, qX, qY, 90 * scale, 90 * scale);
+            }
+
+            if (countInPage === 3) {
+                pdf.addPage();
+                countInPage = 0;
+            }
+
+            const imgData = frameCanvas.toDataURL('image/jpeg', 0.92);
+            const yPos = yOffset + (countInPage * (labelHeight + spacing));
+
+            pdf.addImage(imgData, 'JPEG', xPos, yPos, labelWidth, labelHeight);
+            countInPage++;
+
+            if (currentIdx % 10 === 0 || currentIdx === total) {
+                progressEl.innerText = `⚡ Generando etiqueta ${currentIdx} de ${total}...`;
+                await new Promise(r => setTimeout(r, 0));
+            }
+        }
+
+        tempQrDiv.remove();
+
+        progressEl.innerText = "💾 Guardando archivo PDF...";
+        pdf.save(`KTMEX_Labels_${start}_al_${end}.pdf`);
+
+        btnPdf.disabled = false;
+        progressEl.innerText = "✅ PDF tamaño Carta generado exitosamente";
+        setTimeout(() => progressEl.innerText = "", 4000);
+    }
+    
+    function addMassRow() {
+        const container = document.getElementById('mass-input-container');
+        const row = document.createElement('div');
+        row.className = 'mass-row';
+        row.innerHTML = `
+            <input type="text" placeholder="Escribir Sebango" class="mass-sebango" style="text-transform: uppercase;">
+            <input type="number" placeholder="Cantidad de Etiquetas" class="mass-qty" min="1" value="1">
+            <button class="btn-remove-row" onclick="this.parentElement.remove()">X</button>
+        `;
+        container.appendChild(row);
+    }
+
+    async function generateMassPDF() {
+        const rows = document.querySelectorAll('.mass-row');
+        const tasks = [];
+        
+        rows.forEach(row => {
+            const sebango = row.querySelector('.mass-sebango').value.trim().toUpperCase();
+            const qty = parseInt(row.querySelector('.mass-qty').value);
+            if (sebango && qty > 0) tasks.push({ sebango, qty });
+        });
+
+        if (tasks.length === 0) {
+            alert("Agrega al menos un Sebango y una cantidad válida.");
+            return;
+        }
+
+        const btn = document.getElementById('btn-mass-pdf');
+        const progress = document.getElementById('mass-progress');
+        btn.disabled = true;
+        progress.innerText = "⏳ Descargando base de datos para lectura masiva (JSONP)...";
+
+        try {
+            const dbInfo = await new Promise((resolve, reject) => {
+                const oldScript = document.getElementById('gviz-mass-script');
+                if (oldScript) oldScript.remove();
+
+                window.handleGvizMassResponse = function(response) {
+                    try {
+                        if (!response || !response.table) throw new Error("Respuesta inválida de Google Sheets");
+                        
+                        const table = response.table;
+                        let headers = table.cols.map(c => (c.label || c.id || "").toString().trim().toUpperCase());
+                        let dataMatrix = table.rows.map(r => 
+                            r.c ? r.c.map(cell => (cell && cell.v !== null && cell.v !== undefined) ? String(cell.v).trim() : "") : []
+                        );
+
+                        let sebangoColIdx = headers.findIndex(h => h.includes("SEBANGO"));
+                        if (sebangoColIdx === -1) {
+                            for (let i = 0; i < dataMatrix.length; i++) {
+                                const rowUpper = dataMatrix[i].map(x => x.toUpperCase());
+                                const idx = rowUpper.findIndex(x => x.includes("SEBANGO"));
+                                if (idx !== -1) {
+                                    headers = rowUpper;
+                                    sebangoColIdx = idx;
+                                    dataMatrix = dataMatrix.slice(i + 1);
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (sebangoColIdx === -1) throw new Error("Columna SEBANGO no encontrada.");
+
+                        resolve({ headers, dataMatrix, sebangoColIdx });
+                    } catch (e) {
+                        reject(e);
+                    }
+                };
+
+                const script = document.createElement('script');
+                script.id = 'gviz-mass-script';
+                script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=responseHandler:handleGvizMassResponse`;
+                document.body.appendChild(script);
+
+                setTimeout(() => reject(new Error("Timeout al contactar a Google Sheets.")), 15000);
+            });
+
+            const { headers, dataMatrix, sebangoColIdx } = dbInfo;
+            const getColIndex = (colName) => headers.findIndex(h => h === colName.toUpperCase() || h.includes(colName.toUpperCase()));
+            
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'letter');
+            const labelWidth = 205.9;
+            const labelHeight = 88;
+            let countInPage = 0;
+            let totalGenerated = 0;
+
+            const frameCanvas = document.createElement('canvas');
+            const tempQrDiv = document.createElement('div');
+            tempQrDiv.style.position = 'absolute';
+            tempQrDiv.style.left = '-9999px';
+            document.body.appendChild(tempQrDiv);
+
+            const box = document.getElementById('kanban-box');
+            const today = new Date();
+            const dateStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+
+            window.scrollTo(0, 0);
+
+            for (let t = 0; t < tasks.length; t++) {
+                const task = tasks[t];
+                progress.innerText = `⚡ Procesando modelo: ${task.sebango} (${t+1}/${tasks.length})...`;
+                
+                const match = dataMatrix.find(r => r[sebangoColIdx] && String(r[sebangoColIdx]).trim().toUpperCase() === task.sebango);
+                
+                if (!match) {
+                    continue; 
+                }
+
+                const getVal = (colName) => {
+                    const idx = getColIndex(colName);
+                    return (idx !== -1 && match[idx] !== undefined) ? String(match[idx]) : "";
+                };
+
+                const colK = getVal("AKAN"); 
+                const colK_Client = (match[10] !== undefined && match[10] !== null) ? String(match[10]).trim().toUpperCase() : "";
+                const prevProcVal = (match[3] !== undefined && match[3] !== null) ? String(match[3]).trim() : "";
+                const nextProcVal = (match[4] !== undefined && match[4] !== null) ? String(match[4]).trim() : "";
+                const colO = (match[14] !== undefined && match[14] !== null) ? String(match[14]).trim() : "";
+
+                let prevProc = prevProcVal;
+                let nextProc = nextProcVal;
+                let areaColor = mapAreaColor(colK);
+                
+                if (colK_Client === "WD") {
+                    areaColor = "#FFC0CB"; 
+                    prevProc = nextProcVal; 
+                    nextProc = colO;        
+                }
+
+                const sideColor = mapSideColor(getVal("LADO"));
+                const textColor = sideColor === "#333333" ? "white" : "black";
+                const pno = getVal("NP");
+                const clientId = getVal("IDC");
+                const tekin = getVal("TEKIN");
+                const pack = getVal("EMP");
+                const qpc = getVal("QPC");
+                const client = getVal("CF");
+
+                let imgUrl = getVal("IMG");
+                if (imgUrl && imgUrl.trim() !== "") {
+                    imgUrl = await processDriveImage(imgUrl.trim());
+                }
+
+                document.documentElement.style.setProperty('--area-color', areaColor);
+                document.documentElement.style.setProperty('--side-color', sideColor);
+
+                box.innerHTML = `
+                    <div class="header-row">
+                        <div class="header-cell proc-highlight"><span>Proceso Previo</span><div>${prevProc}</div></div>
+                        <div class="arrow-cell">➔</div>
+                        <div class="header-cell proc-highlight"><span>Siguiente Proceso</span><div>${nextProc}</div></div>
+                        <div class="header-cell"><span>Empaque</span><div>${pack}</div></div>
+                        <div class="header-cell"><span>QPC</span><div>${qpc}</div></div>
+                        <div class="header-cell"><span>Cliente</span><div>${client}</div></div>
+                    </div>
+                    <div class="body-row">
+                        <div class="left-panel" style="color: ${textColor}">
+                            <div class="side-field">
+                                <div class="vert-title"><span>KTMEX</span></div>
+                                <div class="val-text"><span class="val-sebango">${task.sebango}</span></div>
+                            </div>
+                            <div class="side-field">
+                                <div class="vert-title"><span># PARTE</span></div>
+                                <div class="val-text"><span class="val-pno">${pno}</span></div>
+                            </div>
+                            <div class="side-field">
+                                <div class="vert-title"><span>ID CLIENTE</span></div>
+                                <div class="val-text"><span class="val-cliente">${clientId}</span></div>
+                            </div>
+                        </div>
+                        <div class="right-panel">
+                            <div class="img-area">
+                                ${imgUrl ? `<img src="${imgUrl}" crossorigin="anonymous" id="preview-img-obj">` : '<span>Sin Imagen</span>'}
+                                <div class="tekin-label">${tekin}</div>
+                            </div>
+                            <div class="qr-area">
+                                <div style="font-size: 10px; font-weight: bold; margin-bottom: 2px;">SECUENCIA</div>
+                                <div class="seq-box" id="seq-val-target">1</div>
+                                <div id="qr-target-element"></div>
+                                <div style="position: absolute; bottom: 2px; right: 5px; font-size: 9px; font-weight: bold;">${dateStr}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                const imgObj = document.getElementById('preview-img-obj');
+                if (imgObj && !imgObj.complete) {
+                    await new Promise(res => { imgObj.onload = res; imgObj.onerror = res; });
+                }
+
+                const qrContainer = document.getElementById('qr-target-element');
+                qrContainer.innerHTML = "";
+                new QRCode(qrContainer, { text: `TEMP`, width: 90, height: 90, correctLevel: QRCode.CorrectLevel.M });
+                
+                await new Promise(r => setTimeout(r, 150)); 
+
+                const scale = 2;
+                const baseCanvas = await html2canvas(box, { 
+                    scale: scale, 
+                    useCORS: true, 
+                    logging: false, 
+                    animated: false,
+                    scrollY: 0,
+                    scrollX: 0
+                });
+
+                frameCanvas.width = baseCanvas.width;
+                frameCanvas.height = baseCanvas.height;
+                const ctx = frameCanvas.getContext('2d');
+
+                const seqEl = document.getElementById('seq-val-target');
+                const qrEl = document.getElementById('qr-target-element');
+                const boxRect = box.getBoundingClientRect();
+                const seqRect = seqEl.getBoundingClientRect();
+                const qrRect = qrEl.getBoundingClientRect();
+
+                const sX = (seqRect.left - boxRect.left) * scale;
+                const sY = (seqRect.top - boxRect.top) * scale;
+                const sW = seqRect.width * scale;
+                const sH = seqRect.height * scale;
+
+                const qX = (qrRect.left - boxRect.left) * scale;
+                const qY = (qrRect.top - boxRect.top) * scale;
+
+                for (let i = 1; i <= task.qty; i++) {
+                    ctx.drawImage(baseCanvas, 0, 0);
+
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(qX, qY, 90 * scale, 90 * scale);
+
+                    ctx.fillStyle = '#EEEEEE';
+                    ctx.fillRect(sX, sY, sW, sH);
+                    ctx.strokeStyle = '#000000';
+                    ctx.lineWidth = 1 * scale;
+                    ctx.strokeRect(sX, sY, sW, sH);
+
+                    ctx.fillStyle = '#000000';
+                    ctx.font = `bold ${20 * scale}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(i.toString(), sX + (sW / 2), sY + (sH / 2));
+
+                    tempQrDiv.innerHTML = "";
+                    new QRCode(tempQrDiv, {
+                        text: `${i}-${pno}-${task.sebango}`,
+                        width: 90 * scale, height: 90 * scale, correctLevel: QRCode.CorrectLevel.M
+                    });
+
+                    await new Promise(resolve => setTimeout(resolve, 5));
+
+                    const qrCanvas = tempQrDiv.querySelector('canvas');
+                    const qrImg = tempQrDiv.querySelector('img');
+                    
+                    if (qrCanvas && qrCanvas.width > 0) {
+                        ctx.drawImage(qrCanvas, qX, qY, 90 * scale, 90 * scale);
+                    } else if (qrImg) {
+                        if (!qrImg.complete) {
+                            await new Promise(res => { qrImg.onload = res; qrImg.onerror = res; });
+                        }
+                        ctx.drawImage(qrImg, qX, qY, 90 * scale, 90 * scale);
+                    }
+
+                    if (countInPage === 3) {
+                        pdf.addPage();
+                        countInPage = 0;
+                    }
+
+                    const imgData = frameCanvas.toDataURL('image/jpeg', 0.92);
+                    pdf.addImage(imgData, 'JPEG', 0, countInPage * labelHeight, labelWidth, labelHeight);
+                    countInPage++;
+                    totalGenerated++;
+                }
+            }
+
+            tempQrDiv.remove();
+            
+            if (totalGenerated === 0) {
+                alert("⚠️ No se generó ninguna etiqueta. Verifica que los Sebangos sean correctos.");
+                btn.disabled = false;
+                progress.innerText = "";
+                return;
+            }
+
+            const mainSebango = document.getElementById('sebango').value;
+            if(mainSebango) fetchDatabaseBySebango(mainSebango);
+
+            progress.innerText = "💾 Guardando Archivo PDF Masivo...";
+            pdf.save(`KTMEX_Lote_Masivo.pdf`);
+            
+            btn.disabled = false;
+            progress.innerText = `✅ PDF Masivo generado exitosamente (${totalGenerated} etiquetas)`;
+            setTimeout(() => progress.innerText = "", 5000);
+
+        } catch (err) {
+            progress.innerText = "❌ Error: " + err.message;
+            btn.disabled = false;
+        }
+    }
+</script>
+
+</body>
+</html>
