@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KTMEX - Sistema de Etiquetas JAMA</title>
-    <!-- Librerías requeridas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -36,7 +35,6 @@
         .btn-pdf { background: #e74c3c; color: white; }
         button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* DISEÑO EXACTO DE LA ETIQUETA */
         .kanban-render { 
             width: 800px; 
             background: white; 
@@ -59,7 +57,6 @@
         .body-row { display: flex; height: 210px; }
         .left-panel { width: 38%; display: flex; flex-direction: column; background: var(--side-color); border-right: 2px solid black; }
         
-        /* ESTRUCTURA SEPARADA PARA ALINEACIÓN PERFECTA */
         .side-field { 
             flex: 1; 
             display: flex; 
@@ -70,7 +67,7 @@
         .side-field:last-child { border-bottom: none; }
         
         .vert-title {
-            width: 28px; /* Barrera fija de protección */
+            width: 28px;
             position: relative;
         }
         
@@ -89,7 +86,7 @@
             flex: 1;
             display: flex;
             align-items: center;
-            justify-content: center; /* Alineación central estricta matemática */
+            justify-content: center;
             overflow: hidden;
         }
         
@@ -97,13 +94,12 @@
             font-weight: bold;
             white-space: nowrap;
             text-align: center;
-            line-height: 0.9; /* Esto evita que una letra enorme expanda la caja hacia abajo */
+            line-height: 0.9; 
         }
         
-        /* Controles de tamaño individuales para lograr lo que pediste */
-        .val-sebango { font-size: 65px; letter-spacing: -1px; } /* KTMEX GIGANTE */
-        .val-pno { font-size: 40px; letter-spacing: -0.5px; }    /* # PARTE MÁS PEQUEÑO */
-        .val-cliente { font-size: 55px; letter-spacing: -1px; }  /* ID CLIENTE GRANDE PERO MENOR AL SEBANGO */
+        .val-sebango { font-size: 65px; letter-spacing: -1px; } 
+        .val-pno { font-size: 40px; letter-spacing: -0.5px; }    
+        .val-cliente { font-size: 55px; letter-spacing: -1px; }  
 
         .right-panel { width: 62%; display: flex; }
         .img-area { flex: 1; padding: 8px; display: flex; align-items: center; justify-content: center; position: relative; border-right: 1px solid black; }
@@ -117,12 +113,47 @@
         .status-cloud { font-size: 11px; margin-left: 8px; font-weight: bold; }
         #pdf-progress { margin-top: 10px; font-weight: bold; color: #f39c12; font-size: 13px; text-align: center; }
         
-        /* --- ESTILOS PARA IMPRESIÓN MASIVA --- */
-        .mass-print-panel { max-width: 1300px; margin: 20px auto 0 auto; background: #25252b; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .mass-print-panel { 
+            max-width: 1300px; 
+            margin: 20px auto 0 auto; 
+            background: #25252b; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5); 
+        }
+        .mass-print-panel summary { 
+            padding: 15px 20px; 
+            font-size: 1.1rem; 
+            font-weight: bold; 
+            color: #3498db; 
+            cursor: pointer; 
+            list-style: none; 
+            user-select: none; 
+            outline: none; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+        .mass-print-panel summary::-webkit-details-marker { 
+            display: none; 
+        }
+        .mass-print-panel summary::after { 
+            content: '▼'; 
+            font-size: 0.9rem; 
+            transition: transform 0.3s ease; 
+        }
+        .mass-print-panel[open] summary::after { 
+            transform: rotate(180deg); 
+        }
+        .mass-print-content { 
+            padding: 0 20px 20px 20px; 
+            border-top: 1px solid #333; 
+            margin-top: 5px; 
+            padding-top: 15px; 
+        }
         .mass-row { display: flex; gap: 10px; margin-bottom: 10px; }
         .mass-row input { flex: 1; border: 2px solid #3498db; text-transform: uppercase; font-weight: bold; font-size: 16px;}
         .mass-row .mass-qty { flex: 0.3; border: 1px solid #444; font-size: 16px; text-align: center;}
-        .btn-remove-row { flex: 0.1; background: #e74c3c; color: white; padding: 0; font-size: 16px; border-radius: 4px; }
+        .btn-remove-row { flex: 0.1; background: #e74c3c; color: white; padding: 0; font-size: 16px; border-radius: 4px; border: none; cursor: pointer;}
         .btn-remove-row:hover { background: #c0392b; }
         #mass-progress { margin-top: 10px; font-weight: bold; color: #f39c12; font-size: 14px; text-align: center; }
     </style>
@@ -189,23 +220,24 @@
     </div>
 </div>
 
-<!-- PANEL DE IMPRESIÓN MASIVA -->
-<div class="mass-print-panel">
-    <h3 style="color:#3498db; margin-top: 0;">Impresión Masiva de Kanban</h3>
-    <p style="font-size: 12px; color: #aaa;">Ingresa múltiples Sebangos y la cantidad a imprimir de cada uno. Se generará un solo PDF continuo con todas las secuencias.</p>
-    <div id="mass-input-container">
-        <div class="mass-row">
-            <input type="text" placeholder="Escribir Sebango" class="mass-sebango">
-            <input type="number" placeholder="Cantidad de Etiquetas" class="mass-qty" min="1" value="1">
-            <button class="btn-remove-row" onclick="this.parentElement.remove()">X</button>
+<details class="mass-print-panel">
+    <summary>📄 Desplegar Impresión Masiva de Kanban</summary>
+    <div class="mass-print-content">
+        <p style="font-size: 12px; color: #aaa; margin-bottom: 15px; margin-top: 0;">Ingresa múltiples Sebangos y la cantidad a imprimir de cada uno. Se generará un solo PDF continuo con todas las secuencias.</p>
+        <div id="mass-input-container">
+            <div class="mass-row">
+                <input type="text" placeholder="Escribir Sebango" class="mass-sebango">
+                <input type="number" placeholder="Cantidad de Etiquetas" class="mass-qty" min="1" value="1">
+                <button class="btn-remove-row" onclick="this.parentElement.remove()">X</button>
+            </div>
         </div>
+        <div class="btn-group" style="margin-top: 15px;">
+            <button type="button" onclick="addMassRow()" style="background: #27ae60; color: white;">+ Agregar Fila</button>
+            <button type="button" id="btn-mass-pdf" class="btn-pdf" onclick="generateMassPDF()">Generar PDF Masivo</button>
+        </div>
+        <div id="mass-progress"></div>
     </div>
-    <div class="btn-group" style="margin-top: 15px;">
-        <button onclick="addMassRow()" style="background: #27ae60; color: white;">+ Agregar Fila</button>
-        <button id="btn-mass-pdf" class="btn-pdf" onclick="generateMassPDF()">Generar PDF Masivo</button>
-    </div>
-    <div id="mass-progress"></div>
-</div>
+</details>
 
 <script>
     let productImg = "";
@@ -660,10 +692,6 @@
         progressEl.innerText = "✅ PDF tamaño Carta generado exitosamente";
         setTimeout(() => progressEl.innerText = "", 4000);
     }
-
-    // =====================================================================
-    // --- LÓGICA DE IMPRESIÓN MASIVA ---
-    // =====================================================================
     
     function addMassRow() {
         const container = document.getElementById('mass-input-container');
@@ -698,7 +726,6 @@
         progress.innerText = "⏳ Descargando base de datos para lectura masiva (JSONP)...";
 
         try {
-            // Utilizamos el mismo sistema JSONP exacto que tu barra de búsqueda individual para que Google Sheets no bloquee por CORS.
             const dbInfo = await new Promise((resolve, reject) => {
                 const oldScript = document.getElementById('gviz-mass-script');
                 if (oldScript) oldScript.remove();
@@ -763,7 +790,6 @@
             const today = new Date();
             const dateStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
 
-            // Evitar bugs de renderizado de scroll en html2canvas
             window.scrollTo(0, 0);
 
             for (let t = 0; t < tasks.length; t++) {
@@ -773,7 +799,6 @@
                 const match = dataMatrix.find(r => r[sebangoColIdx] && String(r[sebangoColIdx]).trim().toUpperCase() === task.sebango);
                 
                 if (!match) {
-                    console.warn(`Sebango no encontrado en masivo: ${task.sebango}`);
                     continue; 
                 }
 
@@ -863,7 +888,6 @@
                 qrContainer.innerHTML = "";
                 new QRCode(qrContainer, { text: `TEMP`, width: 90, height: 90, correctLevel: QRCode.CorrectLevel.M });
                 
-                // Darle tiempo extra crítico al navegador para dibujar CSS y Estilos antes de tomar la foto
                 await new Promise(r => setTimeout(r, 150)); 
 
                 const scale = 2;
@@ -953,7 +977,6 @@
                 return;
             }
 
-            // Restaurar la vista previa original en pantalla para limpieza visual
             const mainSebango = document.getElementById('sebango').value;
             if(mainSebango) fetchDatabaseBySebango(mainSebango);
 
@@ -965,7 +988,6 @@
             setTimeout(() => progress.innerText = "", 5000);
 
         } catch (err) {
-            console.error(err);
             progress.innerText = "❌ Error: " + err.message;
             btn.disabled = false;
         }
