@@ -166,7 +166,7 @@
                 <label>Área de Kanban</label>
                 <select id="area" disabled onchange="updateColors()">
                     <option value="#27ae60">Producto Terminado (Verde)</option>
-                    <option value="#FFFF00">Subensamble (Amarillo)</option>
+                    <option value="#F9B208">Subensamble (Amarillo)</option>
                     <option value="#FFC0CB">Estampado (Rosa)</option>
                 </select>
             </div>
@@ -175,7 +175,7 @@
                 <label>Lado (Side Color)</label>
                 <select id="side" disabled onchange="updateColors()">
                     <option value="#27ae60">RH (Verde)</option>
-                    <option value="#FFFF00">LH (Amarillo)</option>
+                    <option value="#F9B208">LH (Amarillo)</option>
                     <option value="#333333">NA (Negro)</option>
                 </select>
             </div>
@@ -303,7 +303,7 @@
     function mapAreaColor(akanVal) {
         const val = String(akanVal).trim();
         if (val === "3") return "#27ae60"; 
-        if (val === "2") return "#FFFF00"; 
+        if (val === "2") return "#F9B208"; 
         if (val === "1") return "#FFC0CB"; 
         return "#27ae60";
     }
@@ -311,7 +311,7 @@
     function mapSideColor(ladoVal) {
         const val = String(ladoVal).trim().toUpperCase();
         if (val === "RH") return "#27ae60"; 
-        if (val === "LH") return "#FFFF00"; 
+        if (val === "LH") return "#F9B208"; 
         if (val === "NA") return "#333333"; 
         return "#27ae60";
     }
@@ -344,7 +344,7 @@
 
         const areaVal = document.getElementById('area').value;
 
-        if (colK === "WD" && areaVal === "#FFFF00") { 
+        if (colK === "WD" && areaVal === "#F9B208") { 
             document.getElementById('prevProc').value = colE;
             document.getElementById('nextProc').value = colO;
         } else {
@@ -414,13 +414,13 @@
                     if (colK_Client === "WD") {
                         areaSelect.innerHTML = `
                             <option value="#FFC0CB">Estampado (Rosa)</option>
-                            <option value="#FFFF00">Subensamble (Amarillo)</option>
+                            <option value="#F9B208">Subensamble (Amarillo)</option>
                         `;
                         areaSelect.disabled = false;
                     } else {
                         areaSelect.innerHTML = `
                             <option value="#27ae60">Producto Terminado (Verde)</option>
-                            <option value="#FFFF00">Subensamble (Amarillo)</option>
+                            <option value="#F9B208">Subensamble (Amarillo)</option>
                             <option value="#FFC0CB">Estampado (Rosa)</option>
                         `;
                         areaSelect.disabled = !isAdmin;
